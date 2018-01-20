@@ -1,0 +1,19 @@
+{
+  "name": "mybot",
+  "version": "0.0.1",
+  "description": "An Idiot's Guide Tutorial Bot",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "author": "Sk",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^2.3.0",
+    "discord.js": "^11.3.0",
+    "fs": "0.0.1-security",
+    "opusscript": "0.0.6",
+    "promise-timeout": "^1.1.1",
+    "return-deep-diff": "^0.2.9"
+  }
+}
