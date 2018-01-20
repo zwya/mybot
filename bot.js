@@ -90,6 +90,8 @@ client.on('message', message => {
         voiceConnection = connection
       }).catch(err => {
         console.log(err);
+        isReady = true;
+        isChannelJoined = false;
       });
     }
 
