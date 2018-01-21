@@ -111,7 +111,7 @@ client.on('message', message => {
           "passes": 2
         });
       }
-      dispatcher.on('start', => {
+      dispatcher.on('start', () => {
         voiceConnection.player.streamingData.pausedTime = 0;
       });
       dispatcher.on("end", end => {
