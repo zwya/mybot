@@ -76,7 +76,7 @@ client.on('message', message => {
   if (message.author.bot) return; //if the message author is the bot
   var args = message.content.split(' ');
   console.log(args);
-  if (isReady && message.content.startsWith(prefix + 'play')) {
+  if (message.content.startsWith(prefix + 'play')) {
     play.playMusic(client, message, args);
     //console.log(play.dispatcher);
   } else if (message.content.startsWith(prefix + 'listall')) {

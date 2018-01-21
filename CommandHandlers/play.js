@@ -6,7 +6,7 @@ var dispatcher;
 module.exports.playMusic = async (client, message, args) => {
   isChannelJoined = await joinVoiceChannel(message);
 
-  if (isChannelJoined && voiceConnection && args[1]) {
+  if (isChannelJoined && voiceConnection && isReady && args[1]) {
     var audioRootPath = './Audio/';
     var extension = '.mp3';
 
