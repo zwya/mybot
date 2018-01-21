@@ -111,6 +111,9 @@ client.on('message', message => {
           "passes": 2
         });
       }
+      dispatcher.on('start', => {
+        connection.player.streamingData.pausedTime = 0;
+      });
       dispatcher.on("end", end => {
         isReady = true;
       });
