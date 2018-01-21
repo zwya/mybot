@@ -12,10 +12,8 @@ const ddiff = require('return-deep-diff');
 const chalk = require('chalk');
 const fs = require('fs');
 const promiseTimeout = require('promise-timeout');
-var isReady = true;
-var isChannelJoined = false;
-var voiceChannel;
-var voiceConnection;
+const play = require('./CommandHandlers/play.js');
+const stop = require('./CommandHandlers/stop.js');
 
 var walk = function(dir, done) {
   fs.readdir(dir, function(error, list) {
@@ -79,52 +77,13 @@ client.on('message', message => {
   var args = message.content.split(' ');
   console.log(args);
   if (isReady && message.content.startsWith(prefix + 'play')) {
-    console.log('Went here');
-    isReady = false;
-    if (!isChannelJoined) {
-      voiceChannel = message.member.voiceChannel;
-      voiceChannel.join().then(connection => {
-        console.log("Connection set");
-        isReady = true;
-        isChannelJoined = true;
-        voiceConnection = connection
-      }).catch(err => {
-        console.log(err);
-        isReady = true;
-        isChannelJoined = false;
-      });
-    }
-
-    if (voiceChannel && voiceConnection && args[1]) {
-      console.log('Started playing music');
-      var audioRootPath = './Audio/';
-      var extension = '.mp3';
-
-      dispatcher = null;
-      if (args[2] && Number(args[2])) {
-        dispatcher = voiceConnection.playFile(audioRootPath + args[1] + extension, {
-          "passes": 2,
-          "volume": args[2] / 100
-        });
-      } else {
-        dispatcher = voiceConnection.playFile(audioRootPath + args[1] + extension, {
-          "passes": 2
-        });
-      }
-      dispatcher.on('start', () => {
-        voiceConnection.player.streamingData.pausedTime = 0;
-      });
-      dispatcher.on("end", end => {
-        isReady = true;
-      });
-      dispatcher.on('error', err => {
-        console.log('Went into dispatcher err');
-        console.log(err);
-        isReady = true;
-      });
-    }
+    play.playMusic(client, message, args);
+    //console.log(play.dispatcher);
   } else if (message.content.startsWith(prefix + 'listall')) {
     message.channel.send('https://pastebin.com/WmKnM1Gz');
+  }
+  else if(message.content.startsWith(prefix + 'stop')){
+    stop(play.dispatcher);
   }
 
 
