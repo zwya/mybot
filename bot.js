@@ -6,14 +6,16 @@
 //npm install --save chalk
 
 const Discord = require('discord.js');
-const client = new Discord.Client({autoReconnect:true});
+const client = new Discord.Client({
+  autoReconnect: true
+});
 //const settings = require('./settings.json');
 const ddiff = require('return-deep-diff');
 const chalk = require('chalk');
-const fs = require('fs');
 const promiseTimeout = require('promise-timeout');
 const play = require('./CommandHandlers/play.js');
 const stop = require('./CommandHandlers/stop.js');
+const list = require('./CommandHandlers/list.js');
 
 var walk = function(dir, done) {
   fs.readdir(dir, function(error, list) {
@@ -79,10 +81,16 @@ client.on('message', message => {
   if (message.content.startsWith(prefix + 'play')) {
     play.playMusic(client, message, args);
     //console.log(play.dispatcher);
-  } else if (message.content.startsWith(prefix + 'listall')) {
-    message.channel.send('https://pastebin.com/WmKnM1Gz');
-  }
-  else if(message.content.startsWith(prefix + 'stop')){
+  } else if (message.content.startsWith(prefix + 'list')) {
+    var result = list.list(args);
+    if (result && result.length > 0) {
+      text = '';
+      for (var i = 0; i < result.length; i++) {
+        text += ((i + 1) + '- ' + result[i] + '\n');
+      }
+      message.channel.send(text);
+    }
+  } else if (message.content.startsWith(prefix + 'stop')) {
     stop(play.dispatcher);
   }
 
@@ -182,9 +190,14 @@ client.on('roleUpdate', (oRole, nRole) => {
 
 });
 
+function init() {
+  list.init();
+}
+
 
 //message.channel.fetchMessages((limit: intnum)).then(messages =>{ messages.channel.bulkDelete(messages); });
 //client.login(settings.token);
 //guild.addRole((name: 'str', color: )).catch(error => {})
 //guild.member(message.mention.users.first()).addRole('roleid').catch(error => {});
+init();
 client.login(process.env.BOT_TOKEN);
