@@ -6,7 +6,7 @@
 //npm install --save chalk
 
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Discord.Client({autoReconnect:true});
 //const settings = require('./settings.json');
 const ddiff = require('return-deep-diff');
 const chalk = require('chalk');
