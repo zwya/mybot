@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "chalk": "^2.3.0",
+    "did-you-mean": "0.0.1",
     "discord.js": "^11.3.0",
     "fs": "0.0.1-security",
     "opusscript": "0.0.6",

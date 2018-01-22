@@ -16,6 +16,9 @@ const promiseTimeout = require('promise-timeout');
 const play = require('./CommandHandlers/play.js');
 const stop = require('./CommandHandlers/stop.js');
 const list = require('./CommandHandlers/list.js');
+const data = require('./data.js');
+const wordmatch = require('./util/wordmatch.js');
+
 
 var walk = function(dir, done) {
   fs.readdir(dir, function(error, list) {
@@ -55,11 +58,6 @@ var walk = function(dir, done) {
 
 client.on('ready', () => {
   console.log('I\'m Online');
-  /*walk('./Audio/', err => {
-    if(err){
-      console.log(err);
-    }
-  });*/
 });
 
 client.on('disconnect', () => {
@@ -79,8 +77,14 @@ client.on('message', message => {
   var args = message.content.split(' ');
   console.log(args);
   if (message.content.startsWith(prefix + 'play')) {
-    play.playMusic(client, message, args);
-    //console.log(play.dispatcher);
+    if (play.hasFile(args[1])) {
+      play.playMusic(client, message, args);
+    } else {
+      var match = wordmatch.match(args[1]);
+      if (match) {
+        message.channel.send('Did you mean ' + match + '?');
+      }
+    }
   } else if (message.content.startsWith(prefix + 'list')) {
     var result = list.list(args);
     if (result && result.length > 0) {

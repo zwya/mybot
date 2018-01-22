@@ -1,15 +1,16 @@
+const data = require('../data.js')
+
 var isReady = true;
 var isChannelJoined = false;
 var voiceConnection;
 var dispatcher;
+const audioRootPath = './Audio/';
+const extension = '.mp3';
 
 module.exports.playMusic = async (client, message, args) => {
   isChannelJoined = await joinVoiceChannel(message);
 
   if (isChannelJoined && voiceConnection && isReady && args[1]) {
-    var audioRootPath = './Audio/';
-    var extension = '.mp3';
-
     isReady = false;
     if (args[2] && Number(args[2])) {
       dispatcher = voiceConnection.playFile(audioRootPath + args[1] + extension, {
@@ -28,7 +29,6 @@ module.exports.playMusic = async (client, message, args) => {
       isReady = true;
     });
     dispatcher.on('error', err => {
-      console.log('Went into dispatcher err');
       console.log(err);
       isReady = true;
     });
@@ -41,6 +41,7 @@ async function joinVoiceChannel(message) {
   if (!isChannelJoined) {
     try {
       voiceConnection = await message.member.voiceChannel.join();
+      console.log(voiceConnection.status);
       return true;
     } catch (err) {
       console.log(err);
@@ -48,4 +49,31 @@ async function joinVoiceChannel(message) {
     }
   }
   return true;
+}
+
+function binaryIndexOf(arr, searchElement) {
+
+  var minIndex = 0;
+  var maxIndex = arr.length - 1;
+  var currentIndex;
+  var currentElement;
+
+  while (minIndex <= maxIndex) {
+    currentIndex = (minIndex + maxIndex) / 2 | 0;
+    currentElement = arr[currentIndex];
+
+    if (currentElement < searchElement) {
+      minIndex = currentIndex + 1;
+    } else if (currentElement > searchElement) {
+      maxIndex = currentIndex - 1;
+    } else {
+      return currentIndex;
+    }
+  }
+
+  return -1;
+}
+
+module.exports.hasFile = (filename) => {
+  return binaryIndexOf(data.allFiles, filename) != -1;
 }
