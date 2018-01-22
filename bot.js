@@ -195,7 +195,8 @@ client.on('roleUpdate', (oRole, nRole) => {
 });
 
 function init() {
-  list.init();
+  data.init();
+  wordmatch.init();
 }
 
 
