@@ -41,7 +41,6 @@ async function joinVoiceChannel(message) {
   if (!isChannelJoined) {
     try {
       voiceConnection = await message.member.voiceChannel.join();
-      console.log(voiceConnection.status);
       return true;
     } catch (err) {
       console.log(err);
