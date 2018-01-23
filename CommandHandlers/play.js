@@ -14,12 +14,12 @@ module.exports.playMusic = async (client, message, args) => {
     isReady = false;
     if (args[2] && Number(args[2])) {
       dispatcher = voiceConnection.playFile(audioRootPath + args[1] + extension, {
-        "passes": 2,
+        "passes": 3,
         "volume": args[2] / 100
       });
     } else {
       dispatcher = voiceConnection.playFile(audioRootPath + args[1] + extension, {
-        "passes": 2
+        "passes": 3
       });
     }
     dispatcher.on('start', () => {
