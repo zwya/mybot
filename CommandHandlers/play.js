@@ -13,6 +13,9 @@ module.exports.playMusic = async (client, message, args) => {
   if (isChannelJoined && voiceConnection && isReady && args[1]) {
     isReady = false;
     if (args[2] && Number(args[2])) {
+      if(args[2] > 100){
+        args[2] = 100;
+      }
       dispatcher = voiceConnection.playFile(audioRootPath + args[1] + extension, {
         "passes": 3,
         "volume": args[2] / 100
