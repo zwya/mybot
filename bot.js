@@ -7,8 +7,6 @@
 
 const Discord = require('discord.js');
 var client;
-const settings = require('./settings.json');
-const token = require('./settings.json').token;
 const ddiff = require('return-deep-diff');
 const chalk = require('chalk');
 const promiseTimeout = require('promise-timeout');
@@ -163,7 +161,7 @@ function discordClientInit() {
   client.on('roleUpdate', (oRole, nRole) => {
 
   });
-  client.login(token);
+  client.login(process.env.BOT_TOKEN);
   play.init();
 }
 
