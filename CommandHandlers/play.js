@@ -1,7 +1,7 @@
 const data = require('../data.js')
 
-var isReady = true;
-var isChannelJoined = false;
+var isReady;
+var isChannelJoined;
 var voiceConnection;
 var dispatcher;
 const audioRootPath = './Audio/';
@@ -11,9 +11,10 @@ module.exports.playMusic = async (client, message, args) => {
   isChannelJoined = await joinVoiceChannel(message);
 
   if (isChannelJoined && voiceConnection && isReady && args[1]) {
+    console.log('Played Music');
     isReady = false;
     if (args[2] && Number(args[2])) {
-      if(args[2] > 100){
+      if (args[2] > 100) {
         args[2] = 100;
       }
       dispatcher = voiceConnection.playFile(audioRootPath + args[1] + extension, {
@@ -44,6 +45,7 @@ async function joinVoiceChannel(message) {
   if (!isChannelJoined) {
     try {
       voiceConnection = await message.member.voiceChannel.join();
+      console.log('Joined Voice Channel');
       return true;
     } catch (err) {
       console.log(err);
@@ -78,4 +80,9 @@ function binaryIndexOf(arr, searchElement) {
 
 module.exports.hasFile = (filename) => {
   return binaryIndexOf(data.allFiles, filename) != -1;
+}
+
+module.exports.init = () => {
+  isChannelJoined = false;
+  isReady = true;
 }

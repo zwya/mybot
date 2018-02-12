@@ -36,15 +36,11 @@ function walk(dir, done) {
   });
 };
 
-function init() {
+module.exports.init = () => {
   module.exports.allFiles = [];
   walk('./Audio/', err => {
     if (err) {
       console.log(err);
     }
   });
-}
-
-module.exports.init = () => {
-  init();
 }
