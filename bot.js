@@ -41,6 +41,7 @@ function discordClientInit() {
     var args = message.content.split(' ');
     console.log(args);
     if (args[0].toLowerCase() === prefix + 'play') {
+      args[1] = args[1].toLowerCase();
       if (play.hasFile(args[1])) {
         play.playMusic(client, message, args);
       } else {
