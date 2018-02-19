@@ -61,7 +61,7 @@ function discordClientInit() {
       }
     } else if (args[0].toLowerCase() === prefix + 'stop') {
       stop(play.dispatcher);
-    } else if (args[0].toLowerCase() === prefix + 'destroy') {
+    } else if (args[0].toLowerCase() === prefix + 'begone') {
       client.destroy().then(() => {
         discordClientInit();
       });
