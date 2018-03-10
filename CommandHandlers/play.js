@@ -7,8 +7,8 @@ var dispatcher;
 const audioRootPath = './Audio/';
 const extension = '.mp3';
 
-module.exports.playMusic = async (client, message, args) => {
-  isChannelJoined = await joinVoiceChannel(message);
+module.exports.playMusic = async (member, args) => {
+  isChannelJoined = await joinVoiceChannel(member);
 
   if (isChannelJoined && voiceConnection && isReady && args[1]) {
     console.log('Played Music');
@@ -41,10 +41,10 @@ module.exports.playMusic = async (client, message, args) => {
 
 }
 
-async function joinVoiceChannel(message) {
+async function joinVoiceChannel(member) {
   if (!isChannelJoined) {
     try {
-      voiceConnection = await message.member.voiceChannel.join();
+      voiceConnection = await member.voiceChannel.join();
       console.log('Joined Voice Channel');
       return true;
     } catch (err) {

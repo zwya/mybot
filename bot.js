@@ -9,12 +9,12 @@ const Discord = require('discord.js');
 var client;
 const ddiff = require('return-deep-diff');
 const chalk = require('chalk');
-const promiseTimeout = require('promise-timeout');
 const play = require('./CommandHandlers/play.js');
 const stop = require('./CommandHandlers/stop.js');
 const list = require('./CommandHandlers/list.js');
 const data = require('./data.js');
 const wordmatch = require('./util/wordmatch.js');
+const theme = require('./CommandHandlers/theme.js');
 
 function discordClientInit() {
   client = new Discord.Client({
@@ -43,7 +43,7 @@ function discordClientInit() {
     if (args[0].toLowerCase() === prefix + 'play') {
       args[1] = args[1].toLowerCase();
       if (play.hasFile(args[1])) {
-        play.playMusic(client, message, args);
+        play.playMusic(message.member, args);
       } else {
         var match = wordmatch.match(args[1]);
         if (match) {
@@ -65,6 +65,28 @@ function discordClientInit() {
       client.destroy().then(() => {
         discordClientInit();
       });
+    } else if (args[0].toLowerCase() === prefix + 'settheme') {
+      if (args.length >= 2 && args.length <= 3) {
+        args[1] = args[1].toLowerCase();
+        if (args[2] && message.mentions.users.first().id == client.user.id) {
+          message.channel.send('I am just a poor bot, I cannot set a theme.');
+        } else {
+          if (theme.setTheme(message, args)) {
+            if (args[2]) {
+              message.channel.send(args[1] + ' set succesfully as ' + message.mentions.users.first().username + '\'s theme');
+            } else {
+              message.channel.send(args[1] + ' set succesfully as your theme.');
+            }
+          } else {
+            var match = wordmatch.match(args[1]);
+            if (match) {
+              message.channel.send('I could not find this audio. Did you mean ' + match + '?');
+            } else {
+              message.channel.send('I couldn\'t find any audio matching your input.');
+            }
+          }
+        }
+      }
     }
 
 
@@ -166,9 +188,24 @@ function discordClientInit() {
   play.init();
 }
 
+client.on('voiceStateUpdate', (oldMember, newMember) => {
+  var newUserChannel = newMember.voiceChannel
+  var oldUserChannel = oldMember.voiceChannel
+
+
+  if (oldUserChannel === undefined && newUserChannel !== undefined) {
+
+    theme.onUserLogin(newMember);
+
+  } else if (newUserChannel === undefined) {
+
+    // User leaves a voice channel
+
+  }
 function init() {
   data.init();
   wordmatch.init();
+  theme.init();
 }
 //message.channel.fetchMessages((limit: intnum)).then(messages =>{ messages.channel.bulkDelete(messages); });
 //client.login(settings.token);
