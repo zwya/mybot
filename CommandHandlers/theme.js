@@ -39,6 +39,17 @@ module.exports.setTheme = (message, args) => {
   }
 }
 
+module.exports.unsetTheme = (member) => {
+  if (userData[member.id]) {
+    delete userData[member.id];
+    fs.writeFile('./userdata.json', JSON.stringify(userData), 'utf8', function callback(err) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  }
+}
+
 module.exports.onUserLogin = (member) => {
   if (userData && userData[member.id] && userData[member.id].theme) {
     rightNow = new Date(Date.now());

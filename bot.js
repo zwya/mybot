@@ -88,6 +88,9 @@ function discordClientInit() {
           }
         }
       }
+    } else if (args[0].toLowerCase() === prefix + 'unsettheme') {
+      theme.unsetTheme(message.member);
+      message.channel.send('Theme unset succesfully');
     }
 
 
