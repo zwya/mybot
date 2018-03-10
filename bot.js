@@ -9,6 +9,7 @@ const Discord = require('discord.js');
 var client;
 const ddiff = require('return-deep-diff');
 const chalk = require('chalk');
+const promiseTimeout = require('promise-timeout');
 const play = require('./CommandHandlers/play.js');
 const stop = require('./CommandHandlers/stop.js');
 const list = require('./CommandHandlers/list.js');
@@ -184,28 +185,29 @@ function discordClientInit() {
   client.on('roleUpdate', (oRole, nRole) => {
 
   });
+
+  client.on('voiceStateUpdate', (oldMember, newMember) => {
+    var newUserChannel = newMember.voiceChannel
+    var oldUserChannel = oldMember.voiceChannel
+
+
+    if (oldUserChannel === undefined && newUserChannel !== undefined) {
+
+      theme.onUserLogin(newMember);
+
+    } else if (newUserChannel === undefined) {
+
+      // User leaves a voice channel
+
+    }
+  });
   client.login(process.env.BOT_TOKEN);
   play.init();
 }
 
-client.on('voiceStateUpdate', (oldMember, newMember) => {
-  var newUserChannel = newMember.voiceChannel
-  var oldUserChannel = oldMember.voiceChannel
-
-
-  if (oldUserChannel === undefined && newUserChannel !== undefined) {
-
-    theme.onUserLogin(newMember);
-
-  } else if (newUserChannel === undefined) {
-
-    // User leaves a voice channel
-
-  }
 function init() {
   data.init();
   wordmatch.init();
-  theme.init();
 }
 //message.channel.fetchMessages((limit: intnum)).then(messages =>{ messages.channel.bulkDelete(messages); });
 //client.login(settings.token);
