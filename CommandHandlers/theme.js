@@ -56,7 +56,7 @@ module.exports.onUserLogin = (member) => {
     if (userData[member.id].lastplayed) {
       lastPlayed = new Date(userData[member.id].lastplayed);
       var differenceInHours = Math.floor((rightNow - lastPlayed) / (1000 * 60 * 60));
-      if (differenceInHours >= 3) {
+      if (differenceInHours >= 1) {
         args = [];
         args.push('!play');
         args.push(userData[member.id].theme);
