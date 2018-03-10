@@ -208,6 +208,7 @@ function discordClientInit() {
 function init() {
   data.init();
   wordmatch.init();
+  theme.init();
 }
 //message.channel.fetchMessages((limit: intnum)).then(messages =>{ messages.channel.bulkDelete(messages); });
 //client.login(settings.token);
