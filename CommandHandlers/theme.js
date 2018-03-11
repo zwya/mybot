@@ -60,6 +60,7 @@ module.exports.onUserLogin = (member) => {
         args = [];
         args.push('!play');
         args.push(userData[member.id].theme);
+        console.log(member.voiceChannel);
         play.playMusic(member, args);
         userData[member.id].lastplayed = rightNow.toLocaleString();
         fs.writeFile('./userdata.json', JSON.stringify(userData), 'utf8', function callback(err) {
