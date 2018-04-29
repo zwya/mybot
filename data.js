@@ -1,5 +1,7 @@
 const fs = require('fs');
 
+isAudioCategorized = false;
+
 function walk(dir, done) {
   fs.readdir(dir, function(error, list) {
     if (error) {
@@ -36,11 +38,35 @@ function walk(dir, done) {
   });
 };
 
+function readCategories() {
+  if (fs.existsSync('./audiocategories.json')) {
+    audioCategoriesFile = JSON.parse(fs.readFileSync('./audiocategories.json', 'utf8'));
+    audioCategories = {};
+    for (var key in audioCategoriesFile) {
+      if (module.exports.allFiles.indexOf(key) != -1) {
+        if (audioCategories[audioCategoriesFile[key]]) {
+          audioCategories[audioCategoriesFile[key]].push(key);
+        } else {
+          audioCategories[audioCategoriesFile[key]] = [];
+          audioCategories[audioCategoriesFile[key]].push(key);
+        }
+      } else {
+        console.log('I don\'t know audio file: ' + key + ', I will not add it to categories')
+      }
+    }
+    module.exports.audioCategories = audioCategories;
+  } else {
+    conosle.log('WARNING: audiocategories.json not found please create it if you wish to have audio categoeries')
+  }
+}
+
 module.exports.init = () => {
   module.exports.allFiles = [];
   walk('./Audio/', err => {
     if (err) {
       console.log(err);
+    } else {
+      readCategories();
     }
   });
 }
