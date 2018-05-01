@@ -1,4 +1,3 @@
-var fs = require('fs')
 var play = require('./play.js');
 var data = require('../data.js');
 var userData;
