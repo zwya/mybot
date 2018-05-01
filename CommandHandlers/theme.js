@@ -50,6 +50,8 @@ module.exports.onUserLogin = (member) => {
       lastPlayed = new Date(userData[member.id].lastplayed);
       var differenceInHours = Math.floor((rightNow - lastPlayed) / (1000 * 60 * 60));
       console.log(differenceInHours);
+      console.log(rightNow.toLocaleString());
+      console.log(lastPlayed.toLocaleString())
       if (differenceInHours >= 1) {
         args = [];
         args.push('!play');
