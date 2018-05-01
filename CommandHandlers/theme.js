@@ -12,7 +12,6 @@ module.exports.setTheme = (message, args) => {
     if (!userData) {
       userData = data.userData;
     }
-    console.log(userData);
     if (userData[memberId]) {
       userData[memberId].theme = args[1];
       data.updateUser(memberId, {
@@ -50,6 +49,7 @@ module.exports.onUserLogin = (member) => {
     if (userData[member.id].lastplayed) {
       lastPlayed = new Date(userData[member.id].lastplayed);
       var differenceInHours = Math.floor((rightNow - lastPlayed) / (1000 * 60 * 60));
+      console.log(differenceInHours);
       if (differenceInHours >= 1) {
         args = [];
         args.push('!play');
