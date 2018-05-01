@@ -1,7 +1,7 @@
 var fs = require('fs')
 var play = require('./play.js');
+var data = require('../data.js');
 var userData;
-var userDataRead;
 
 module.exports.setTheme = (message, args) => {
   if (play.hasFile(args[1])) {
@@ -10,48 +10,43 @@ module.exports.setTheme = (message, args) => {
     } else {
       var memberId = message.member.id;
     }
-    if (userDataRead) {
-      if (userData[memberId]) {
-        userData[memberId].theme = args[1];
-      } else {
-        userData[memberId] = {};
-        userData[memberId].theme = args[1];
-      }
-      fs.writeFile('./userdata.json', JSON.stringify(userData), 'utf8', function callback(err) {
-        if (err) {
-          console.log(err);
-        }
+    if (!userData) {
+      userData = data.userData;
+    }
+    console.log(userData);
+    if (userData[memberId]) {
+      userData[memberId].theme = args[1];
+      data.updateUser(memberId, {
+        theme: args[1]
       });
-      return true;
     } else {
-      userData = {};
       userData[memberId] = {};
       userData[memberId].theme = args[1];
-      fs.writeFile('./userdata.json', JSON.stringify(userData), 'utf8', function callback(err) {
-        if (err) {
-          console.log(err);
-        }
+      data.createUser({
+        userid: memberId,
+        theme: args[1]
       });
-      return true;
     }
-  } else {
-    return false;
+    return true;
   }
+  return false;
 }
 
 module.exports.unsetTheme = (member) => {
+  if (!userData) {
+    userData = data.userData;
+  }
   if (userData[member.id]) {
     delete userData[member.id];
-    fs.writeFile('./userdata.json', JSON.stringify(userData), 'utf8', function callback(err) {
-      if (err) {
-        console.log(err);
-      }
-    });
+    data.deleteUser(member.id);
   }
 }
 
 module.exports.onUserLogin = (member) => {
-  if (userData && userData[member.id] && userData[member.id].theme) {
+  if (!userData) {
+    userData = data.userData;
+  }
+  if (userData[member.id]) {
     rightNow = new Date(Date.now());
     if (userData[member.id].lastplayed) {
       lastPlayed = new Date(userData[member.id].lastplayed);
@@ -60,14 +55,8 @@ module.exports.onUserLogin = (member) => {
         args = [];
         args.push('!play');
         args.push(userData[member.id].theme);
-        console.log(member.voiceChannel);
         play.playMusic(member, args);
         userData[member.id].lastplayed = rightNow.toLocaleString();
-        fs.writeFile('./userdata.json', JSON.stringify(userData), 'utf8', function callback(err) {
-          if (err) {
-            console.log(err);
-          }
-        });
       }
     } else {
       args = [];
@@ -75,20 +64,9 @@ module.exports.onUserLogin = (member) => {
       args.push(userData[member.id].theme);
       play.playMusic(member, args);
       userData[member.id].lastplayed = rightNow.toLocaleString();
-      fs.writeFile('./userdata.json', JSON.stringify(userData), 'utf8', function callback(err) {
-        if (err) {
-          console.log(err);
-        }
-      });
     }
-  }
-}
-
-module.exports.init = () => {
-  userDataRead = false;
-  if (fs.existsSync('./userdata.json')) {
-    userData = JSON.parse(fs.readFileSync('./userdata.json', 'utf8'));
-    userDataRead = true;
-    console.log('user data read');
+    data.updateUser(member.id, {
+      lastplayed: userData[member.id].lastplayed
+    });
   }
 }

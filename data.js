@@ -1,6 +1,6 @@
 const fs = require('fs');
-
-isAudioCategorized = false;
+const mongodb = require('mongodb').MongoClient;
+const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
 
 function walk(dir, done) {
   fs.readdir(dir, function(error, list) {
@@ -60,6 +60,84 @@ function readCategories() {
   }
 }
 
+function getUserDataFromDB() {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    dbo.collection('userdata').find({}).toArray(function(err, res) {
+      if (err) {
+        console.log(err);
+        return;
+      }
+      userData = {}
+      for (var i = 0; i < res.length; i++) {
+        userData[res[i]['userid']] = {};
+        userData[res[i]['userid']].theme = res[i]['theme'];
+      }
+      module.exports.userData = userData;
+      db.close();
+    });
+  });
+}
+
+
+module.exports.updateUser = (userid, data) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    var query = {
+      userid: userid
+    };
+    var newValues = {
+      $set: data
+    };
+    dbo.collection('userdata').updateOne(query, newValues, function(err, res) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  });
+}
+
+module.exports.deleteUser = (userid) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    var query = {
+      userid: userid
+    };
+    dbo.collection('userdata').deleteOne(query, function(err, res) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  });
+}
+
+module.exports.createUser = (user) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    dbo.collection('userdata').insertOne(user, function(err, res) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  });
+}
+
 module.exports.init = () => {
   module.exports.allFiles = [];
   walk('./Audio/', err => {
@@ -69,4 +147,5 @@ module.exports.init = () => {
       readCategories();
     }
   });
+  getUserDataFromDB();
 }
