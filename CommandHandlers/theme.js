@@ -1,6 +1,5 @@
 var play = require('./play.js');
 var data = require('../data.js');
-var userData;
 
 module.exports.setTheme = (message, args) => {
   if (play.hasFile(args[1])) {
@@ -9,17 +8,14 @@ module.exports.setTheme = (message, args) => {
     } else {
       var memberId = message.member.id;
     }
-    if (!userData) {
-      userData = data.userData;
-    }
-    if (userData[memberId]) {
-      userData[memberId].theme = args[1];
+    if (data.userData[memberId]) {
+      data.userData[memberId].theme = args[1];
       data.updateUser(memberId, {
         theme: args[1]
       });
     } else {
-      userData[memberId] = {};
-      userData[memberId].theme = args[1];
+      data.userData[memberId] = {};
+      data.userData[memberId].theme = args[1];
       data.createUser({
         userid: memberId,
         theme: args[1]
@@ -31,43 +27,37 @@ module.exports.setTheme = (message, args) => {
 }
 
 module.exports.unsetTheme = (member) => {
-  if (!userData) {
-    userData = data.userData;
-  }
-  if (userData[member.id]) {
-    delete userData[member.id];
+  if (data.userData[member.id]) {
+    delete data.userData[member.id];
     data.deleteUser(member.id);
   }
 }
 
 module.exports.onUserLogin = (member) => {
-  if (!userData) {
-    userData = data.userData;
-  }
-  if (userData[member.id]) {
+  if (data.userData[member.id]) {
     rightNow = new Date(Date.now());
-    if (userData[member.id].lastplayed) {
-      lastPlayed = new Date(userData[member.id].lastplayed);
+    if (data.userData[member.id].lastplayed) {
+      lastPlayed = new Date(data.userData[member.id].lastplayed);
       var differenceInHours = Math.floor((rightNow - lastPlayed) / (1000 * 60 * 60));
-      console.log(differenceInHours);
-      console.log(rightNow.toLocaleString());
-      console.log(lastPlayed.toLocaleString())
       if (differenceInHours >= 1) {
         args = [];
         args.push('!play');
-        args.push(userData[member.id].theme);
+        args.push(data.userData[member.id].theme);
         play.playMusic(member, args);
-        userData[member.id].lastplayed = rightNow.toLocaleString();
+        data.userData[member.id].lastplayed = rightNow.toLocaleString();
+        data.updateUser(member.id, {
+          lastplayed: data.userData[member.id].lastplayed
+        });
       }
     } else {
       args = [];
       args.push('!play');
-      args.push(userData[member.id].theme);
+      args.push(data.userData[member.id].theme);
       play.playMusic(member, args);
-      userData[member.id].lastplayed = rightNow.toLocaleString();
+      data.userData[member.id].lastplayed = rightNow.toLocaleString();
+      data.updateUser(member.id, {
+        lastplayed: data.userData[member.id].lastplayed
+      });
     }
-    data.updateUser(member.id, {
-      lastplayed: userData[member.id].lastplayed
-    });
   }
 }

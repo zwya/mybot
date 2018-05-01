@@ -149,3 +149,7 @@ module.exports.init = () => {
   });
   getUserDataFromDB();
 }
+
+module.exports.reinit = () => {
+  getUserDataFromDB();
+}

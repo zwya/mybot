@@ -206,6 +206,7 @@ function discordClientInit() {
   });
   client.login(process.env.BOT_TOKEN);
   play.init();
+  data.reinit();
 }
 
 function init() {
