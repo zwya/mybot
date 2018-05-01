@@ -13,6 +13,7 @@
     "did-you-mean": "0.0.1",
     "discord.js": "^11.3.0",
     "fs": "0.0.1-security",
+    "mongodb": "^3.0.7",
     "opusscript": "0.0.6",
     "promise-timeout": "^1.1.1",
     "return-deep-diff": "^0.2.9"
