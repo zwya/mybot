@@ -39,6 +39,7 @@ function walk(dir, done) {
 };
 
 function readCategories() {
+  module.exports.categories = [];
   if (fs.existsSync('./audiocategories.json')) {
     audioCategoriesFile = JSON.parse(fs.readFileSync('./audiocategories.json', 'utf8'));
     audioCategories = {};
@@ -49,6 +50,7 @@ function readCategories() {
         } else {
           audioCategories[audioCategoriesFile[key]] = [];
           audioCategories[audioCategoriesFile[key]].push(key);
+          module.exports.categories.push(audioCategoriesFile[key]);
         }
       } else {
         console.log('I don\'t know audio file: ' + key + ', I will not add it to categories')

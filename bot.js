@@ -93,6 +93,13 @@ function discordClientInit() {
     } else if (args[0].toLowerCase() === prefix + 'unsettheme') {
       theme.unsetTheme(message.member);
       message.channel.send('Theme unset succesfully');
+    } else if (args[0].toLowerCase() == prefix + 'categories') {
+      var categories = data.categories;
+      var text = '';
+      for (var i = 0; i < categories.length; i++) {
+        text += ((i + 1) + '- ' + categories[i] + '\n');
+      }
+      message.channel.send(text);
     }
 
 
