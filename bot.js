@@ -61,7 +61,9 @@ function discordClientInit() {
         message.channel.send(text);
       }
     } else if (args[0].toLowerCase() === prefix + 'stop') {
-      stop(play.dispatcher);
+      if (message.member.voiceChannel && message.member.voiceChannel.name == play.voiceChannelName) {
+        stop(play.dispatcher);
+      }
     } else if (args[0].toLowerCase() === prefix + 'begone') {
       client.destroy().then(() => {
         discordClientInit();

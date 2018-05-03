@@ -45,6 +45,7 @@ async function joinVoiceChannel(member) {
   if (!isChannelJoined) {
     try {
       voiceConnection = await member.voiceChannel.join();
+      module.exports.voiceChannelName = member.voiceChannel.name;
       console.log('Joined Voice Channel');
       return true;
     } catch (err) {

@@ -38,8 +38,8 @@ module.exports.onUserLogin = (member) => {
     rightNow = new Date(Date.now());
     if (data.userData[member.id].lastplayed) {
       lastPlayed = new Date(data.userData[member.id].lastplayed);
-      var differenceInHours = Math.floor((rightNow - lastPlayed) / (1000 * 60 * 60));
-      if (differenceInHours >= 1) {
+      var differenceInHours = Math.floor((rightNow - lastPlayed) / (1000 * 60));
+      if (differenceInHours >= 30) {
         args = [];
         args.push('!play');
         args.push(data.userData[member.id].theme);
