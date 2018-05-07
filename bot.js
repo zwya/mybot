@@ -33,7 +33,7 @@ function discordClientInit() {
 
   });
 
-  var prefix = "!"
+  var prefix = "#"
   client.on('message', message => {
     //console.log(message.content[message.content.indexOf('5') + 1]);
     if (!message.content.startsWith(prefix)) return;
