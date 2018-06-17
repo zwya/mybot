@@ -78,6 +78,7 @@ function getUserDataFromDB() {
       for (var i = 0; i < res.length; i++) {
         userData[res[i]['userid']] = {};
         userData[res[i]['userid']].theme = res[i]['theme'];
+        userData[res[i]['userid']].lastplayed = res[i]['lastplayed'];
       }
       module.exports.userData = userData;
       db.close();
