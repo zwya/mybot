@@ -156,7 +156,7 @@ module.exports.seek = (args, channel, callback, theme) => {
       const result = args[1].match(regex);
       if (result && result.length == 1) {
         time = args[1].split(":");
-        if (Number(time[0]) > 0 && Number(time[1]) >= 0) {
+        if (Number(time[0]) >= 0 && Number(time[1]) >= 0) {
           if (Number(time[0]) * 60 + Number(time[1]) < songDetails.length_seconds) {
             var streamOptions = {};
             streamOptions.seek = Number(time[0]) * 60 + Number(time[1]);
