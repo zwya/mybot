@@ -4,8 +4,7 @@
   "description": "An Idiot's Guide Tutorial Bot",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js",
-    "build": "/app/.heroku/node/bin/node app/.heroku/node/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js rebuild"
+    "start": "node bot.js"
   },
   "engines": {
     "node": "12.14.0",
