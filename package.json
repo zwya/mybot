@@ -8,8 +8,8 @@
     "build": "/app/.heroku/node/bin/node app/.heroku/node/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js rebuild"
   },
   "engines": {
-  	"node": "12.14.0",
-  	"npm": "6.13.4"
+    "node": "12.14.0",
+    "npm": "6.13.4"
   },
   "author": "Sk",
   "license": "MIT",
@@ -21,6 +21,7 @@
     "fs": "0.0.1-security",
     "libsodium-wrappers": "^0.7.6",
     "mongodb": "^3.4.0",
+    "nan": "^2.14.0",
     "node-opus": "^0.3.3",
     "promise-timeout": "^1.3.0",
     "request": "^2.88.0",
