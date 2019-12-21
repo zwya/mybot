@@ -21,7 +21,7 @@ module.exports.setTheme = (message, args, callback) => {
         if (result && result.length == 2) {
           startTime = result[0].split(":");
           endTime = result[1].split(":");
-          if (Number(startTime[0]) >= 0 && Number(startTime[1]) >= 0 && Number(endTime[0]) >= 0 && Number(endTime[1]) >= 0 && (Number(endTime[0]) * 60 + Number(endTime[1]) < info.length_seconds)) {
+          if (Number(startTime[0]) >= 0 && Number(startTime[1]) >= 0 && Number(endTime[0]) >= 0 && Number(endTime[1]) >= 0 && (Number(endTime[0]) * 60 + Number(endTime[1]) <= info.length_seconds)) {
             if (data.userData[memberId]) {
               data.userData[memberId].theme = info.title;
               data.userData[memberId].startTime = result[0];
@@ -51,7 +51,6 @@ module.exports.setTheme = (message, args, callback) => {
               message: 'Something is wrong with the format',
               error: '6'
             });
-            pendingRequests.shift();
           }
         }
       } else {
@@ -78,7 +77,7 @@ module.exports.setTheme = (message, args, callback) => {
             break;
           }
         }
-        pendingRequests.splice(index, 1)[0];
+        pendingRequests.splice(index, 1);
       }
     }, 1000 * 60 * 5);
   } else {

@@ -10,6 +10,7 @@ var client;
 const promiseTimeout = require('promise-timeout');
 const music = require('./CommandHandlers/music.js');
 const theme = require('./CommandHandlers/theme.js');
+const help = require('./CommandHandlers/help.js');
 const data = require('./data.js');
 const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
 
@@ -78,7 +79,7 @@ function discordClientInit() {
            discordClientInit();
          });
        }
-    else if (args[0].toLowerCase() === prefix + 'settheme') {
+    else if (args[0].toLowerCase() === prefix + 'theme') {
       var vidName = args[1];
       for (var i = 2; i < args.length; i++) {
         vidName = vidName + ' ' + args[i];
@@ -93,13 +94,11 @@ function discordClientInit() {
       theme.unsetTheme(message.member);
       message.channel.send('Theme unset succesfully');
     } else if (args[0].toLowerCase() === prefix + 'help') {
-      if (args.length == 1) {
-        message.channel.send('A completely unreliable bot:\nCommands Available: !play - !stop - !skip - !resume - !seek - !volume - !theme - !untheme')
-      }
+      help.help(args, message.channel);
     }
     else if (args[0].toLowerCase() === prefix + 'clean') {
       message.channel.fetchMessages({limit: 100}).then(messages => {
-        const regex = /!(play|volume|settheme|untheme|stop|skip|seek|play|clean)/g
+        const regex = /!(play|volume|theme|untheme|stop|skip|seek|play|clean|begone|help)/g
         messagesArray = messages.array();
         messages.filter(message => {
           const result = message.content.match(regex);
@@ -231,4 +230,3 @@ function init() {
 //guild.member(message.mention.users.first()).addRole('roleid').catch(error => {});
 init();
 discordClientInit();
-
