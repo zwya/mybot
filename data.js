@@ -1,66 +1,8 @@
 const fs = require('fs');
 const mongodb = require('mongodb').MongoClient;
 const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
-
-function walk(dir, done) {
-  fs.readdir(dir, function(error, list) {
-    if (error) {
-      return done(error);
-    }
-
-    var i = 0;
-
-    (function next() {
-      var file = list[i++];
-
-      if (!file) {
-        return done(null);
-      }
-
-      file = dir + '/' + file;
-
-      fs.stat(file, function(error, stat) {
-
-        if (stat && stat.isDirectory()) {
-          walk(file, function(error) {
-            next();
-          });
-        } else {
-          // do stuff to file here
-          filecpy = file;
-          filecpy = filecpy.substring(9);
-          filecpy = filecpy.substring(0, filecpy.length - 4);
-          module.exports.allFiles.push(filecpy);
-          next();
-        }
-      });
-    })();
-  });
-};
-
-function readCategories() {
-  module.exports.categories = [];
-  if (fs.existsSync('./audiocategories.json')) {
-    audioCategoriesFile = JSON.parse(fs.readFileSync('./audiocategories.json', 'utf8'));
-    audioCategories = {};
-    for (var key in audioCategoriesFile) {
-      if (module.exports.allFiles.indexOf(key) != -1) {
-        if (audioCategories[audioCategoriesFile[key]]) {
-          audioCategories[audioCategoriesFile[key]].push(key);
-        } else {
-          audioCategories[audioCategoriesFile[key]] = [];
-          audioCategories[audioCategoriesFile[key]].push(key);
-          module.exports.categories.push(audioCategoriesFile[key]);
-        }
-      } else {
-        console.log('I don\'t know audio file: ' + key + ', I will not add it to categories')
-      }
-    }
-    module.exports.audioCategories = audioCategories;
-  } else {
-    conosle.log('WARNING: audiocategories.json not found please create it if you wish to have audio categoeries')
-  }
-}
+const ytdl = require('ytdl-core');
+const request = require('request');
 
 function getUserDataFromDB() {
   mongodb.connect(connectionURL, function(err, db) {
@@ -79,6 +21,8 @@ function getUserDataFromDB() {
         userData[res[i]['userid']] = {};
         userData[res[i]['userid']].theme = res[i]['theme'];
         userData[res[i]['userid']].lastplayed = res[i]['lastplayed'];
+        userData[res[i]['userid']].startTime = res[i]['startTime'];
+        userData[res[i]['userid']].endTime = res[i]['endTime'];
       }
       module.exports.userData = userData;
       db.close();
@@ -86,6 +30,17 @@ function getUserDataFromDB() {
   });
 }
 
+module.exports.getYtVideoInfo = (args, callback) => {
+  request('http://webcrawler2.herokuapp.com/webserver/video?q=' + args[1], function(error, response, body) {
+    if (error) {
+      console.log(error);
+    } else {
+      ytdl.getInfo('https://www.youtube.com/watch?v=' + JSON.parse(body).link, function(err, info) {
+        callback(info);
+      });
+    }
+  });
+}
 
 module.exports.updateUser = (userid, data) => {
   mongodb.connect(connectionURL, function(err, db) {
@@ -142,17 +97,5 @@ module.exports.createUser = (user) => {
 }
 
 module.exports.init = () => {
-  module.exports.allFiles = [];
-  walk('./Audio/', err => {
-    if (err) {
-      console.log(err);
-    } else {
-      readCategories();
-    }
-  });
-  getUserDataFromDB();
-}
-
-module.exports.reinit = () => {
   getUserDataFromDB();
 }

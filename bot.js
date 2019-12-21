@@ -7,15 +7,11 @@
 
 const Discord = require('discord.js');
 var client;
-const ddiff = require('return-deep-diff');
-const chalk = require('chalk');
 const promiseTimeout = require('promise-timeout');
-const play = require('./CommandHandlers/play.js');
-const stop = require('./CommandHandlers/stop.js');
-const list = require('./CommandHandlers/list.js');
-const data = require('./data.js');
-const wordmatch = require('./util/wordmatch.js');
+const music = require('./CommandHandlers/music.js');
 const theme = require('./CommandHandlers/theme.js');
+const data = require('./data.js');
+const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
 
 function discordClientInit() {
   client = new Discord.Client({
@@ -42,67 +38,76 @@ function discordClientInit() {
     var args = message.content.split(' ');
     console.log(args);
     if (args[0].toLowerCase() === prefix + 'play') {
-      args[1] = args[1].toLowerCase();
-      if (play.hasFile(args[1])) {
-        play.playMusic(message.member, args);
-      } else {
-        var match = wordmatch.match(args[1]);
-        if (match) {
-          message.channel.send('Did you mean ' + match + '?');
-        }
+      var vidName = args[1];
+      for (var i = 2; i < args.length; i++) {
+        vidName = vidName + ' ' + args[i];
       }
-    } else if (args[0].toLowerCase() === prefix + 'list') {
-      var result = list.list(args);
-      if (result && result.length > 0) {
-        text = '';
-        for (var i = 0; i < result.length; i++) {
-          text += ((i + 1) + '- ' + result[i] + '\n');
-        }
-        message.channel.send(text);
-      }
-    } else if (args[0].toLowerCase() === prefix + 'stop') {
-      if (message.member.voiceChannel && message.member.voiceChannel.name == play.voiceChannelName) {
-        stop(play.dispatcher);
-      }
-    } else if (args[0].toLowerCase() === prefix + 'begone') {
-      client.destroy().then(() => {
-        discordClientInit();
+      var adjustedArguments = [args[0], vidName]
+      music.play(message.member, adjustedArguments, false, result => {
+        message.channel.send(result.message);
       });
-    } else if (args[0].toLowerCase() === prefix + 'settheme') {
-      if (args.length >= 2 && args.length <= 3) {
-        args[1] = args[1].toLowerCase();
-        if (args[2] && message.mentions.users.first().id == client.user.id) {
-          message.channel.send('I am just a poor bot, I cannot set a theme.');
-        } else {
-          if (theme.setTheme(message, args)) {
-            if (args[2]) {
-              message.channel.send(args[1] + ' set succesfully as ' + message.mentions.users.first().username + '\'s theme');
-            } else {
-              message.channel.send(args[1] + ' set succesfully as your theme.');
-            }
-          } else {
-            var match = wordmatch.match(args[1]);
-            if (match) {
-              message.channel.send('I could not find this audio. Did you mean ' + match + '?');
-            } else {
-              message.channel.send('I couldn\'t find any audio matching your input.');
-            }
-          }
+    } else if (args[0].toLowerCase() === prefix + 'seek') {
+      music.seek(args, message.member.voiceChannel, result => {
+        if (result.error) {
+          message.channel.send(result.message);
         }
+      });
+    } else if (args[0].toLowerCase() === prefix + 'skip') {
+      music.skip(message.member.voiceChannel, result => {
+        message.channel.send(result.message);
+      });
+    } else if (args[0].toLowerCase() === prefix + 'stop') {
+      music.stop(message.member.voiceChannel, result => {
+        if (result.error) {
+          message.channel.send(result.message);
+        }
+      });
+    } else if (args[0].toLowerCase() === prefix + 'resume') {
+      music.resume(message.member.voiceChannel, result => {
+        if (result.error) {
+          message.channel.send(result.message);
+        }
+      });
+    } else if (args[0].toLowerCase() === prefix + 'volume') {
+      music.volume(args, message.member.voiceChannel, result => {
+        message.channel.send(result.message);
+      });
+    }
+    else if (args[0].toLowerCase() === prefix + 'begone') {
+         client.destroy().then(() => {
+           discordClientInit();
+         });
+       }
+    else if (args[0].toLowerCase() === prefix + 'settheme') {
+      var vidName = args[1];
+      for (var i = 2; i < args.length; i++) {
+        vidName = vidName + ' ' + args[i];
       }
-    } else if (args[0].toLowerCase() === prefix + 'unsettheme') {
+      var adjustedArguments = [args[0], vidName]
+      theme.setTheme(message, adjustedArguments, result => {
+        if(result) {
+          message.channel.send(result.message);
+        }
+      });
+    } else if (args[0].toLowerCase() === prefix + 'untheme') {
       theme.unsetTheme(message.member);
       message.channel.send('Theme unset succesfully');
-    } else if (args[0].toLowerCase() == prefix + 'categories') {
-      var categories = data.categories;
-      var text = '';
-      for (var i = 0; i < categories.length; i++) {
-        text += ((i + 1) + '- ' + categories[i] + '\n');
+    } else if (args[0].toLowerCase() === prefix + 'help') {
+      if (args.length == 1) {
+        message.channel.send('A completely unreliable bot:\nCommands Available: !play - !stop - !skip - !resume - !seek - !volume - !theme - !untheme')
       }
-      message.channel.send(text);
     }
-
-
+    else if (args[0].toLowerCase() === prefix + 'clean') {
+      message.channel.fetchMessages({limit: 100}).then(messages => {
+        const regex = /!(play|volume|settheme|untheme|stop|skip|seek|play|clean)/g
+        messagesArray = messages.array();
+        messages.filter(message => {
+          const result = message.content.match(regex);
+          return result && result.length > 0 || message.author.id == client.user.id;
+        }).deleteAll();
+      });
+    }
+    //message.channel.send(text);
     //message.reply('pong'); replies to a message from a specifc user with mention
     //message.createdTimestamp time message created
     //client.channels.get('channel id').sendMessage('hell from second channel') send a message to a specific channel
@@ -204,7 +209,6 @@ function discordClientInit() {
 
 
     if (oldUserChannel === undefined && newUserChannel !== undefined) {
-
       theme.onUserLogin(newMember);
 
     } else if (newUserChannel === undefined) {
@@ -214,13 +218,12 @@ function discordClientInit() {
     }
   });
   client.login(process.env.BOT_TOKEN);
-  play.init();
-  data.reinit();
+  music.init();
+  data.init();
 }
 
 function init() {
   data.init();
-  wordmatch.init();
 }
 //message.channel.fetchMessages((limit: intnum)).then(messages =>{ messages.channel.bulkDelete(messages); });
 //client.login(settings.token);
@@ -228,3 +231,4 @@ function init() {
 //guild.member(message.mention.users.first()).addRole('roleid').catch(error => {});
 init();
 discordClientInit();
+
