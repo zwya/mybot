@@ -14,6 +14,9 @@ const help = require('./CommandHandlers/help.js');
 const data = require('./data.js');
 const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
 
+var prefix = "!"
+var prefixSet = false;
+
 function discordClientInit() {
   client = new Discord.Client({
     autoReconnect: true
@@ -30,8 +33,11 @@ function discordClientInit() {
 
   });
 
-  var prefix = "!"
   client.on('message', message => {
+    if (!prefixSet && data.serverData) {
+      prefix = data.serverData[message.guild.id].prefix;
+      prefixSet = true;
+    }
     //console.log(message.content[message.content.indexOf('5') + 1]);
     if (!message.content.startsWith(prefix)) return;
     //if(message.author === client.user) return; if the bot is the one who's sending this message
@@ -105,6 +111,41 @@ function discordClientInit() {
           return result && result.length > 0 || message.author.id == client.user.id;
         }).deleteAll();
       });
+    } else if (args[0].toLowerCase() === prefix + 'prefix') {
+      if (message.guild.available) {
+        if (args.length != 2) {
+          message.channel.send('You must supply only one argument.');
+          return;
+        }
+        if (args[1].length != 1) {
+          message.channel.send('The prefix must be only one character.');
+          return;
+        }
+        const allowedPrefixes = ['!', '$', '%', '&'];
+        if (!allowedPrefixes.includes(args[1])) {
+          message.channel.send('Only the following prefixes are allowed: [!, $, %, &].');
+          return;
+        }
+        if (data.serverData) {
+          const server = {
+            prefix: args[1]
+          }
+          data.updateServer(message.guild.id, server);
+        }
+        else {
+          const server = {
+            guildid: message.guild.id,
+            prefix: args[1]
+          }
+          data.createServer(server);
+        }
+        message.channel.send('Prefix set as: ' + args[1]);
+        data.serverData[message.guild.id].prefix = args[1];
+        prefix = args[1];
+      }
+      else {
+        message.channel.send('Can\' fetch server data, something is wrong with discord.');
+      }
     }
     //message.channel.send(text);
     //message.reply('pong'); replies to a message from a specifc user with mention
@@ -217,12 +258,13 @@ function discordClientInit() {
     }
   });
   client.login(process.env.BOT_TOKEN);
-  music.init();
-  data.init();
+  init()
 }
 
 function init() {
+  music.init();
   data.init();
+  prefixSet = false;
 }
 //message.channel.fetchMessages((limit: intnum)).then(messages =>{ messages.channel.bulkDelete(messages); });
 //client.login(settings.token);

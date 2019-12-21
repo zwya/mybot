@@ -28,6 +28,26 @@ function getUserDataFromDB() {
       db.close();
     });
   });
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    dbo.collection('serverdata').find({}).toArray(function(err, res) {
+      if (err) {
+        console.log(err);
+        return;
+      }
+      var serverData = {}
+      for (var i = 0; i < res.length; i++) {
+        serverData[res[i]['guildid']] = {};
+        serverData[res[i]['guildid']].prefix = res[i].prefix
+      }
+      module.exports.serverData = serverData;
+      db.close();
+    });
+  });
 }
 
 module.exports.getYtVideoInfo = (args, callback) => {
@@ -63,6 +83,27 @@ module.exports.updateUser = (userid, data) => {
   });
 }
 
+module.exports.updateServer = (guildid, data) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    var query = {
+      guildid: guildid
+    };
+    var newValues = {
+      $set: data
+    };
+    dbo.collection('serverdata').updateOne(query, newValues, function(err, res) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  });
+}
+
 module.exports.deleteUser = (userid) => {
   mongodb.connect(connectionURL, function(err, db) {
     if (err) {
@@ -81,6 +122,24 @@ module.exports.deleteUser = (userid) => {
   });
 }
 
+module.exports.deleteServer = (guildid) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    var query = {
+      guildid: guildid
+    };
+    dbo.collection('serverdata').deleteOne(query, function(err, res) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  });
+}
+
 module.exports.createUser = (user) => {
   mongodb.connect(connectionURL, function(err, db) {
     if (err) {
@@ -89,6 +148,21 @@ module.exports.createUser = (user) => {
     }
     var dbo = db.db('discordbot');
     dbo.collection('userdata').insertOne(user, function(err, res) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  });
+}
+
+module.exports.createServer = (guild) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    dbo.collection('serverdata').insertOne(guild, function(err, res) {
       if (err) {
         console.log(err);
       }
