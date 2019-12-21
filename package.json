@@ -6,6 +6,10 @@
   "scripts": {
     "start": "node bot.js"
   },
+  "engines": {
+  	"node": "12.14.0",
+  	"npm": "6.13.4"
+  },
   "author": "Sk",
   "license": "MIT",
   "dependencies": {
