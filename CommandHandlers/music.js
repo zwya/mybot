@@ -242,6 +242,7 @@ module.exports.init = () => {
   queue = [];
   volume = 100;
   theme = false;
+  currentVoiceChannel = null;
 }
 
 function playDispatcher(songInfo, streamOptions, callback) {
