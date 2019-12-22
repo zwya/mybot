@@ -32,6 +32,9 @@ module.exports.help = (args, channel) => {
     else if(cmd == 'untheme') {
       channel.send('Removes your theme.');
     }
+    else if(cmd == 'prefix') {
+      channel.send('Sets the prefix of the bot\'s commands to the supplied argument prefix ( Only the following prefixes are allowed [!, $, &, %] ). ');
+    }
   }
   else {
     channel.send('Something is wrong the format');
