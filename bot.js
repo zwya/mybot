@@ -128,10 +128,11 @@ function discordClientInit() {
           message.channel.send('Only the following prefixes are allowed: [!, $, %, &].');
           return;
         }
-        if (data.serverData) {
+        if (data.serverData[message.guild.id]) {
           const server = {
             prefix: args[1]
           }
+          data.serverData[message.guild.id].prefix = args[1];
           data.updateServer(message.guild.id, server);
         }
         else {
@@ -139,10 +140,11 @@ function discordClientInit() {
             guildid: message.guild.id,
             prefix: args[1]
           }
+          data.serverData[message.guild.id] = {};
+          data.serverData[message.guild.id].prefix = args[1];
           data.createServer(server);
         }
         message.channel.send('Always make sure to clean before setting a new prefix.\nPrefix set as: ' + args[1]);
-        data.serverData[message.guild.id].prefix = args[1];
         prefix = args[1];
         prefixSet = false;
       }
