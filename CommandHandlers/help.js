@@ -4,7 +4,7 @@ module.exports.prefix = false;
 
 module.exports.help = (args, channel) => {
   if (args.length == 1) {
-    channel.send(prefix('A completely unreliable bot:\nCommands Available: !play - !stop - !skip - !resume - !seek - !volume - !theme - !untheme'));
+    channel.send(prefix('A completely unreliable bot:\nCommands Available: !play - !stop - !skip - !resume - !seek - !volume - !theme - !untheme - !prefix'));
   }
   else if (args.length == 2 && validCommand(args[1].toLowerCase())) {
     const cmd = args[1].toLowerCase();
@@ -42,7 +42,7 @@ module.exports.help = (args, channel) => {
 }
 
 function validCommand(cmd) {
-  const validCommands = ['play', 'stop', 'skip', 'seek', 'volume', 'theme', 'untheme', 'clean', 'resume'];
+  const validCommands = ['play', 'stop', 'skip', 'seek', 'volume', 'theme', 'untheme', 'clean', 'resume', 'prefix'];
   if (validCommands.includes(cmd)) {
     return true;
   }
