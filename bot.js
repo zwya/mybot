@@ -34,7 +34,7 @@ function discordClientInit() {
   });
 
   client.on('message', message => {
-    if (!prefixSet && data.serverData) {
+    if (!prefixSet && data.serverData[message.guild.id]) {
       prefix = data.serverData[message.guild.id].prefix;
       theme.prefix = data.serverData[message.guild.id].prefix;
       help.prefix = data.serverData[message.guild.id].prefix;
