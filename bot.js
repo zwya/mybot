@@ -36,6 +36,8 @@ function discordClientInit() {
   client.on('message', message => {
     if (!prefixSet && data.serverData) {
       prefix = data.serverData[message.guild.id].prefix;
+      theme.prefix = data.serverData[message.guild.id].prefix;
+      help.prefix = data.serverData[message.guild.id].prefix;
       prefixSet = true;
     }
     //console.log(message.content[message.content.indexOf('5') + 1]);
@@ -104,7 +106,7 @@ function discordClientInit() {
     }
     else if (args[0].toLowerCase() === prefix + 'clean') {
       message.channel.fetchMessages({limit: 100}).then(messages => {
-        const regex = /!(play|volume|theme|untheme|stop|skip|seek|play|clean|begone|help)/g
+        const regex = new RegExp('\\' + prefix + '(play|volume|theme|untheme|stop|skip|seek|play|clean|begone|help)', 'g');
         messagesArray = messages.array();
         messages.filter(message => {
           const result = message.content.match(regex);
@@ -139,9 +141,10 @@ function discordClientInit() {
           }
           data.createServer(server);
         }
-        message.channel.send('Prefix set as: ' + args[1]);
+        message.channel.send('Always make sure to clean before setting a new prefix.\nPrefix set as: ' + args[1]);
         data.serverData[message.guild.id].prefix = args[1];
         prefix = args[1];
+        prefixSet = false;
       }
       else {
         message.channel.send('Can\' fetch server data, something is wrong with discord.');

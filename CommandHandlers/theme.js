@@ -1,7 +1,10 @@
 const music = require('./music.js');
+const util = require('../util/util.js');
 var data = require('../data.js');
 
+
 var pendingRequests = [];
+module.exports.prefix = false;
 
 module.exports.setTheme = (message, args, callback) => {
   if (pendingRequests.length > 0 && pendingRequests.some(el => el.memberid == message.member.id)) {
@@ -66,7 +69,7 @@ module.exports.setTheme = (message, args, callback) => {
       args: args
     });
     callback({
-      message: 'Please type the timestamp in the following format:\n!settheme mm:ss mm:ss where the first timestamp is the start and the second one is the end'
+      message: prefix('Please type the timestamp in the following format:\n!theme mm:ss mm:ss where the first timestamp is the start and the second one is the end', module.exports.prefix)
     });
     setTimeout(function() {
       if (pendingRequests.length > 0 && pendingRequests.some(el => el.memberid == message.member.id)) {
@@ -135,4 +138,8 @@ module.exports.onUserLogin = (member) => {
       });
     }
   }
+}
+
+function prefix(str){
+  return util.prefixify(str, module.exports.prefix);
 }
