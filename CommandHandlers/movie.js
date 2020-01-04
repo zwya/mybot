@@ -83,7 +83,7 @@ function getMovie(callback) {
       movie.duration = '???';
     }
     movie.genre = '';
-    if (movie.genres && movies.genres.length > 0) {
+    if (movie.genres && movies.genre.length > 0) {
       movie.genre = movie.genres[0].genre;
       for (var i = 1; i < movie.genres.length; i++) {
         movie.genre = movie.genre + ', ' + movie.genres[i].genre;
