@@ -189,4 +189,6 @@ module.exports.createServer = (guild) => {
 
 module.exports.init = () => {
   getUserDataFromDB();
+  module.exports.data = {movies: {}};
+  module.exports.data['movies']['top100'] = null;
 }
