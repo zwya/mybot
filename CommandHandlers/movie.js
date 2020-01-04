@@ -20,8 +20,9 @@ module.exports.sendEmbed = (message) => {
     embed = createEmbed(movie, false);
     message.channel.send(embed).then(m => {
       embedMessage = m;
-      embedMessage.react('◀️');
-      embedMessage.react('▶️');
+      embedMessage.react('◀️').then(mr => {
+        embedMessage.react('▶️');
+      });
 
       function onReact() {
         if (time / 1000 >= max_time) {
@@ -48,11 +49,11 @@ module.exports.sendEmbed = (message) => {
                 getMovie(movie => {
                   const receivedEmbed = embedMessage.embeds[0];
                   const embed = createEmbed(movie, receivedEmbed);
-                  embedMessage.channel.send(embed).then(m => {
-                    embedMessage = m;
+                  embedMessage.edit(embed).then(m => {
                     embedMessage.clearReactions().then(message => {
-                      embedMessage.react('◀️');
-                      embedMessage.react('▶️');
+                      embedMessage.react('◀️').then(mr => {
+                        embedMessage.react('▶️');
+                      });
                     });
                   });
                 });
