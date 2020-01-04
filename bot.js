@@ -108,7 +108,7 @@ function discordClientInit() {
     }
     else if (args[0].toLowerCase() === prefix + 'clean') {
       message.channel.fetchMessages({limit: 100}).then(messages => {
-        const regex = new RegExp('\\' + prefix + '(play|volume|theme|untheme|stop|skip|seek|play|clean|begone|help)', 'g');
+        const regex = new RegExp('\\' + prefix + '(play|volume|theme|untheme|stop|skip|seek|play|clean|begone|help|movies)', 'g');
         messagesArray = messages.array();
         messages.filter(message => {
           const result = message.content.match(regex);
