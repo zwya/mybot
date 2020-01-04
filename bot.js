@@ -11,6 +11,7 @@ const promiseTimeout = require('promise-timeout');
 const music = require('./CommandHandlers/music.js');
 const theme = require('./CommandHandlers/theme.js');
 const help = require('./CommandHandlers/help.js');
+const movie = require('./CommandHandlers/movie.js');
 const data = require('./data.js');
 const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
 
@@ -23,6 +24,7 @@ function discordClientInit() {
   });
   client.on('ready', () => {
     console.log('I\'m Online');
+    movie.init(client.user.id);
   });
 
   client.on('disconnect', () => {
@@ -151,6 +153,9 @@ function discordClientInit() {
       else {
         message.channel.send('Can\' fetch server data, something is wrong with discord.');
       }
+    }
+    else if (args[0].toLowerCase() === prefix + 'movies') {
+      movie.sendEmbed(message);
     }
     //message.channel.send(text);
     //message.reply('pong'); replies to a message from a specifc user with mention

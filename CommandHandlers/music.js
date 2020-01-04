@@ -251,8 +251,7 @@ function playDispatcher(songInfo, streamOptions, callback) {
     var streamOptions = {};
   }
   var stream = ytdl(songInfo.video_url, {
-    filter: 'audioonly',
-    highWaterMark: 1<<25
+    filter: 'audioonly'
   });
   console.log('Playing Music');
   if (callback) {

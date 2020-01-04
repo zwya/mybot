@@ -62,6 +62,23 @@ module.exports.getYtVideoInfo = (args, callback) => {
   });
 }
 
+module.exports.getMovies = (callback) => {
+  if (module.exports.data && module.exports.data['movies']['top100']) {
+    callback(module.exports.data['movies']['top100']);
+  }
+  else {
+    request('http://webcrawler2.herokuapp.com/webserver/', function(error, response) {
+      if (error) {
+        console.log(error);
+      }
+      else {
+        module.exports.data['movies']['top100'] = JSON.parse(response.body);
+        callback(module.exports.data['movies']['top100']);
+      }
+    });
+  }
+}
+
 module.exports.updateUser = (userid, data) => {
   mongodb.connect(connectionURL, function(err, db) {
     if (err) {
