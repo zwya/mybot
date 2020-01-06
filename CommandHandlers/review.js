@@ -38,7 +38,7 @@ module.exports.handleMessage = (message, args, callback) =>  {
     for (var i=3;i<args.length;i++) {
       name = name + ' ' + args[i];
     }
-    data.findReview({namelower: name.toLowerCase()}, false, response => {
+    data.findReview({namelower: name.toLowerCase(), userid: message.member.id}, false, response => {
       if (response) {
         data.deleteReview(response['_id']);
         callback({message: 'Review deleted'});
