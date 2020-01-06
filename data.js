@@ -172,6 +172,65 @@ module.exports.createUser = (user) => {
   });
 }
 
+module.exports.createReview = (review) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    dbo.collection('review').insertOne(review, function(err, res) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  });
+}
+
+module.exports.deleteReview = (reviewid) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    var query = {
+      _id: reviewid
+    };
+    dbo.collection('review').deleteOne(query, function(err, res) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  });
+}
+
+module.exports.findReview = (query, array, callback) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    if (array) {
+      dbo.collection('review').find(query).sort({date: -1}).limit(5).toArray(function(err, result) {
+        if (err) {
+          console.log(err);
+        }
+        callback(result);
+      });
+    }
+    else {
+      dbo.collection('review').findOne(query, function(err, res) {
+        if (err) {
+          console.log(err);
+        }
+        callback(res);
+      });
+    }
+  });
+}
+
 module.exports.createServer = (guild) => {
   mongodb.connect(connectionURL, function(err, db) {
     if (err) {

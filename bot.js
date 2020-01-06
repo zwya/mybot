@@ -12,11 +12,13 @@ const music = require('./CommandHandlers/music.js');
 const theme = require('./CommandHandlers/theme.js');
 const help = require('./CommandHandlers/help.js');
 const movie = require('./CommandHandlers/movie.js');
+const review = require('./CommandHandlers/review.js');
 const data = require('./data.js');
 const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
 
 var prefix = "!"
 var prefixSet = false;
+var interceptMessageQueue = [];
 
 function discordClientInit() {
   client = new Discord.Client({
@@ -41,6 +43,21 @@ function discordClientInit() {
       theme.prefix = data.serverData[message.guild.id].prefix;
       help.prefix = data.serverData[message.guild.id].prefix;
       prefixSet = true;
+    }
+
+    if (interceptMessageQueue.length > 0) {
+      for (var i=0;i<interceptMessageQueue.length;i++) {
+        if (message.member.id == interceptMessageQueue[i]['userid']) {
+          interceptMessageQueue[i]['call']({
+            message: message,
+            category: interceptMessageQueue[i]['data']['category'],
+            callback: interceptMessageQueue[i]['data']['callback'],
+            name: interceptMessageQueue[i]['data']['name']
+          });
+          interceptMessageQueue.splice(i, 1);
+          break;
+        }
+      }
     }
     //console.log(message.content[message.content.indexOf('5') + 1]);
     if (!message.content.startsWith(prefix)) return;
@@ -108,7 +125,7 @@ function discordClientInit() {
     }
     else if (args[0].toLowerCase() === prefix + 'clean') {
       message.channel.fetchMessages({limit: 100}).then(messages => {
-        const regex = new RegExp('\\' + prefix + '(play|volume|theme|untheme|stop|skip|seek|play|clean|begone|help|movies)', 'g');
+        const regex = new RegExp('\\' + prefix + '(play|volume|theme|untheme|stop|skip|seek|play|clean|begone|help|movies|review)', 'g');
         messagesArray = messages.array();
         messages.filter(message => {
           const result = message.content.match(regex);
@@ -156,6 +173,24 @@ function discordClientInit() {
     }
     else if (args[0].toLowerCase() === prefix + 'movies') {
       movie.sendEmbed(message);
+    }
+    else if (args[0].toLowerCase() === prefix + 'review') {
+      review.handleMessage(message, args, response => {
+        if (response['error']) {
+          message.channel.send(response['error']);
+        }
+        if (response['message']) {
+          message.channel.send(response['message']);
+        }
+        if (response['call']) {
+          interceptMessageQueue.push({call: response['call'], data: response['data'], userid: message.member.id});
+        }
+        if (response['embeds']) {
+          for (var i=0;i<response['embeds'].length;i++) {
+            message.channel.send(response['embeds'][i]);
+          }
+        }
+      });
     }
     //message.channel.send(text);
     //message.reply('pong'); replies to a message from a specifc user with mention
