@@ -14,13 +14,23 @@ module.exports.handleMessage = (message, args, callback) =>  {
         if (response.length > 0) {
           var embeds = [];
           for (var i=0;i<response.length;i++) {
-            const embed = new Discord.RichEmbed()
+            var embed = new Discord.RichEmbed()
               .setColor('#0099ff')
               .setTitle(response[i]['membername'])
               .addField('Name', response[i]['name'], true)
               .addField('Category', response[i]['category'], true)
-              .addField('Review', response[i]['text']);
-              embeds.push(embed);
+
+            const parts = response[i]['text'].split('\n');
+            var title = false;
+            for (var i=0;i<parts.length;i++) {
+              if (i % 2 == 0) {
+                title = parts[i];
+              }
+              else {
+                embed.addField(title, parts[i]);
+              }
+            }
+            embeds.push(embed);
           }
           callback({'embeds': embeds});
         }
@@ -81,15 +91,40 @@ module.exports.handleMessage = (message, args, callback) =>  {
 }
 
 module.exports.saveReview = (reviewData) => {
-  const now = new Date(Date.now()).toLocaleString();
-  data.createReview({
-    userid: reviewData.message.member.id,
-    membername: reviewData.message.member.displayName,
-    text: reviewData.message.content,
-    category: reviewData.category,
-    name: reviewData.name,
-    namelower: reviewData.name.toLowerCase(),
-    date: now
-  });
-  reviewData.callback({message: 'Your review has been saved'});
+  const parts = reviewData.message.content.split('\n');
+  if (parts.length >= 2 && parts.length % 2 == 0 && parts.length <= 12) {
+    var properFormat = true;
+    for (var i=0;i<parts.length;i++) {
+      if(i % 2 == 0) {
+        if (parts[i].length > 100) {
+          properFormat = false;
+          reviewData.callback({error: 'Titles must not exceed 100 characters'});
+          break;
+        }
+      }
+      else {
+        if (parts[i].length > 800) {
+          properFormat = false;
+          reviewData.callback({error: 'Text must not exceed 800 characters'});
+          break;
+        }
+      }
+    }
+    if (properFormat) {
+      const now = new Date(Date.now()).toLocaleString();
+      data.createReview({
+        userid: reviewData.message.member.id,
+        membername: reviewData.message.member.displayName,
+        text: reviewData.message.content,
+        category: reviewData.category,
+        name: reviewData.name,
+        namelower: reviewData.name.toLowerCase(),
+        date: now
+      });
+      reviewData.callback({message: 'Your review has been saved'});
+    }
+  }
+  else {
+    reviewData.callback({error: 'Improper review format'});
+  }
 }
