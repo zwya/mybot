@@ -27,7 +27,7 @@ module.exports.handleMessage = (message, args, callback) =>  {
                 title = parts[x];
               }
               else {
-                embed.addField(title, parts[i]);
+                embed.addField(title, parts[x]);
               }
             }
             embeds.push(embed);
