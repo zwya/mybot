@@ -12,57 +12,29 @@ module.exports.handleMessage = (message, args, callback) =>  {
       }
       data.findReview({namelower: name.toLowerCase()}, true, response => {
         if (response.length > 0) {
-          var embeds = [];
-          for (var i=0;i<response.length;i++) {
-            var embed = new Discord.RichEmbed()
-              .setColor('#0099ff')
-              .setTitle(response[i]['membername'])
-              .addField('Name', response[i]['name'], true)
-              .addField('Category', response[i]['category'], true)
-
-            const parts = response[i]['text'].split('\n');
-            var title = false;
-            for (var x=0;x<parts.length;x++) {
-              if (x % 2 == 0) {
-                title = parts[x];
-              }
-              else {
-                embed.addField(title, parts[x]);
-              }
-            }
-            embeds.push(embed);
-          }
-          callback({'embeds': embeds});
+          callback({'embeds': createEmbeds(response)});
         }
         else {
-          callback({error: 'No results found'});
+          const keywords = constructKeywords(args);
+          var promises = [];
+          for (var i=0;i<keywords.length;i++) {
+            promises.push(findReview({keywords: {$in: [keywords[i]]}}, true));
+          }
+          Promise.all(promises).then(values => {
+            if (values.length > 0) {
+              callback({'embeds': createEmbeds(values)});
+            }
+            else {
+              callback({error: 'No results found'});
+            }
+          });
         }
       });
     }
     else {
       data.findReview({}, true, response => {
         if (response.length > 0) {
-          var embeds = [];
-          for (var i=0;i<response.length;i++) {
-            var embed = new Discord.RichEmbed()
-              .setColor('#0099ff')
-              .setTitle(response[i]['membername'])
-              .addField('Name', response[i]['name'], true)
-              .addField('Category', response[i]['category'], true)
-
-            const parts = response[i]['text'].split('\n');
-            var title = false;
-            for (var x=0;x<parts.length;x++) {
-              if (x % 2 == 0) {
-                title = parts[x];
-              }
-              else {
-                embed.addField(title, parts[x]);
-              }
-            }
-            embeds.push(embed);
-          }
-          callback({'embeds': embeds});
+          callback({'embeds': createEmbeds(response)});
         }
         else {
           callback({error: 'No results found'});
@@ -90,16 +62,14 @@ module.exports.handleMessage = (message, args, callback) =>  {
     if (validCategories.includes(category)) {
       if (args[2]) {
         var name = args[2];
-        for (var i=3;i<args.length;i++) {
-          name = name + ' ' + args[i];
-        }
+        const keywords = constructKeywords(args);
         data.findReview({userid: message.member.id, category: category, namelower: name.toLowerCase()}, false, response => {
           if(response) {
             callback({message: 'You have reviewed this game before.'});
           }
           else {
             if(validCategories.includes(category)) {
-              callback({call: module.exports.saveReview, message: 'The next message you write will be automatically saved as the review', data:{category:category, name: name, callback: callback}});
+              callback({call: module.exports.saveReview, message: 'The next message you write will be automatically saved as the review', data:{category:category, name: name, callback: callback, keywords: keywords}});
             }
           }
         });
@@ -146,7 +116,8 @@ module.exports.saveReview = (reviewData) => {
         category: reviewData.category,
         name: reviewData.name,
         namelower: reviewData.name.toLowerCase(),
-        date: now
+        date: now,
+        keywords: reviewData.keywords
       });
       reviewData.callback({message: 'Your review has been saved'});
     }
@@ -154,4 +125,54 @@ module.exports.saveReview = (reviewData) => {
   else {
     reviewData.callback({error: 'Improper review format'});
   }
+}
+
+function createEmbeds(response) {
+  var embeds = [];
+  for (var i=0;i<response.length;i++) {
+    var embed = new Discord.RichEmbed()
+      .setColor('#0099ff')
+      .setTitle(response[i]['membername'])
+      .addField('Name', response[i]['name'], true)
+      .addField('Category', response[i]['category'], true)
+
+    const parts = response[i]['text'].split('\n');
+    var title = false;
+    for (var x=0;x<parts.length;x++) {
+      if (x % 2 == 0) {
+        title = parts[x];
+      }
+      else {
+        embed.addField(title, parts[x]);
+      }
+    }
+    embeds.push(embed);
+  }
+  return embeds;
+}
+
+function constructKeywords(args) {
+  keywords = [];
+  if(args[2].length > 2) {
+    keywords = [args[2].toLowerCase()];
+  }
+  for (var i=3;i<keywords.length;i++) {
+    if (args[i].length > 2) {
+      keywords.push(args[i].toLowerCase());
+    }
+  }
+  return keywords;
+}
+
+function findReview(query, array) {
+  return new Promise(function(resolve, reject){
+    data.findReview(query, array, response => {
+      if(response && response.length != 0) {
+        resolve(response[0]);
+      }
+      else {
+        resolve(null);
+      }
+    });
+  });
 }

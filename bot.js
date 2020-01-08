@@ -52,7 +52,8 @@ function discordClientInit() {
             message: message,
             category: interceptMessageQueue[i]['data']['category'],
             callback: interceptMessageQueue[i]['data']['callback'],
-            name: interceptMessageQueue[i]['data']['name']
+            name: interceptMessageQueue[i]['data']['name'],
+            keywords: interceptMessageQueue[i]['data']['keywords']
           });
           interceptMessageQueue.splice(i, 1);
           break;
