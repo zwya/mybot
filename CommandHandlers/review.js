@@ -22,9 +22,9 @@ module.exports.handleMessage = (message, args, callback) =>  {
 
             const parts = response[i]['text'].split('\n');
             var title = false;
-            for (var i=0;i<parts.length;i++) {
-              if (i % 2 == 0) {
-                title = parts[i];
+            for (var x=0;x<parts.length;x++) {
+              if (x % 2 == 0) {
+                title = parts[x];
               }
               else {
                 embed.addField(title, parts[i]);
@@ -40,7 +40,34 @@ module.exports.handleMessage = (message, args, callback) =>  {
       });
     }
     else {
-      callback({message: 'You haven\'t typed a name'});
+      data.findReview({}, true, response => {
+        if (response.length > 0) {
+          var embeds = [];
+          for (var i=0;i<response.length;i++) {
+            var embed = new Discord.RichEmbed()
+              .setColor('#0099ff')
+              .setTitle(response[i]['membername'])
+              .addField('Name', response[i]['name'], true)
+              .addField('Category', response[i]['category'], true)
+
+            const parts = response[i]['text'].split('\n');
+            var title = false;
+            for (var x=0;x<parts.length;x++) {
+              if (x % 2 == 0) {
+                title = parts[x];
+              }
+              else {
+                embed.addField(title, parts[x]);
+              }
+            }
+            embeds.push(embed);
+          }
+          callback({'embeds': embeds});
+        }
+        else {
+          callback({error: 'No results found'});
+        }
+      });
     }
   }
   else if (args[1] && args[1] == 'remove') {
