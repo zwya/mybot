@@ -94,7 +94,11 @@ module.exports.handleMessage = (message, args, callback) =>  {
     if (validCategories.includes(category)) {
       if (args[2]) {
         var name = args[2];
+        for (var i=3;i<args.length;i++) {
+          name = name + ' ' + args[i];
+        }
         const keywords = constructKeywords(args);
+        console.log(keywords);
         data.findReview({userid: message.member.id, category: category, namelower: name.toLowerCase()}, false, response => {
           if(response) {
             callback({message: 'You have reviewed this game before.'});
@@ -188,14 +192,9 @@ module.exports.init = (clientID) => {
 }
 
 function constructKeywords(args) {
-  keywords = [];
-  if(args[2].length > 2) {
-    keywords = [args[2].toLowerCase()];
-  }
-  for (var i=3;i<keywords.length;i++) {
-    if (args[i].length > 2) {
-      keywords.push(args[i].toLowerCase());
-    }
+  keywords = [args[2].toLowerCase()];
+  for (var i=3;i<args.length;i++) {
+    keywords.push(args[i].toLowerCase());
   }
   return keywords;
 }
