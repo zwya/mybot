@@ -2,6 +2,10 @@ const data = require('../data.js');
 const validCategories = ['game', 'anime', 'series', 'movie'];
 const Discord = require('discord.js');
 var client = false;
+var embeds = false;
+var currentMessage = false;
+var filter = false;
+var index = 0;
 
 module.exports.handleMessage = (message, args, callback) =>  {
   if(args[1] && args[1] == 'find') {
@@ -22,7 +26,21 @@ module.exports.handleMessage = (message, args, callback) =>  {
           }
           Promise.all(promises).then(values => {
             if (values.length > 0) {
-              callback({'embeds': createEmbeds(values)});
+              embeds = createEmbeds(response);
+              if (currentMessage) {
+                currentMessage.clearReactions();
+              }
+              index = 0;
+              message.channel.send(embeds[0]).then(msg => {
+                currentMessage = msg;
+                currentMessage.react('◀️').then(msg1 => {
+                  currentMessage.react('▶️').then(msg2 => {
+                    currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                      onReact(collected);
+                    });
+                  });
+                });
+              });
             }
             else {
               callback({error: 'No results found'});
@@ -34,7 +52,21 @@ module.exports.handleMessage = (message, args, callback) =>  {
     else {
       data.findReview({}, true, response => {
         if (response.length > 0) {
-          callback({'embeds': createEmbeds(response)});
+          embeds = createEmbeds(response);
+          if (currentMessage) {
+            currentMessage.clearReactions();
+          }
+          index = 0;
+          message.channel.send(embeds[0]).then(msg => {
+            currentMessage = msg;
+            currentMessage.react('◀️').then(msg1 => {
+              currentMessage.react('▶️').then(msg2 => {
+                currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                  onReact(collected);
+                });
+              });
+            });
+          });
         }
         else {
           callback({error: 'No results found'});
@@ -151,6 +183,10 @@ function createEmbeds(response) {
   return embeds;
 }
 
+module.exports.init = (clientID) => {
+  filter = (reaction, user) => (reaction.emoji.name === '◀️' || reaction.emoji.name === '▶️') && clientID != user.id;
+}
+
 function constructKeywords(args) {
   keywords = [];
   if(args[2].length > 2) {
@@ -175,4 +211,43 @@ function findReview(query, array) {
       }
     });
   });
+}
+
+function onReact(collected) {
+  const reaction = collected.first();
+  const oldIndex = index;
+  if (reaction) {
+    if (reaction.emoji.name === '◀️') {
+      if (index > 0) {
+        index = index - 1;
+      }
+    } else {
+      if (index < embeds.length - 1) {
+        index = index + 1;
+      }
+    }
+    if (index != oldIndex) {
+      currentMessage.edit(embeds[index]).then(m1 => {
+        currentMessage.clearReactions().then(m2 => {
+          currentMessage.react('◀️').then(m3 => {
+            currentMessage.react('▶️').then(m4 => {
+              currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                onReact(collected);
+              });
+            });
+          });
+        });
+      });
+    }
+    else {
+      currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+        onReact(collected);
+      });
+    }
+  }
+  else {
+    currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+      onReact(collected);
+    });
+  }
 }

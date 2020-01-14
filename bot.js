@@ -27,6 +27,7 @@ function discordClientInit() {
   client.on('ready', () => {
     console.log('I\'m Online');
     movie.init(client.user.id);
+    review.init(client.user.id);
   });
 
   client.on('disconnect', () => {
@@ -185,11 +186,6 @@ function discordClientInit() {
         }
         if (response['call']) {
           interceptMessageQueue.push({call: response['call'], data: response['data'], userid: message.member.id});
-        }
-        if (response['embeds']) {
-          for (var i=0;i<response['embeds'].length;i++) {
-            message.channel.send(response['embeds'][i]);
-          }
         }
       });
     }
