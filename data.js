@@ -213,7 +213,7 @@ module.exports.findReview = (query, array, callback) => {
     }
     var dbo = db.db('discordbot');
     if (array) {
-      dbo.collection('review').find(query).sort({date: -1}).limit(5).toArray(function(err, result) {
+      dbo.collection('review').find(query).sort({date: 1}).limit(5).toArray(function(err, result) {
         if (err) {
           console.log(err);
         }
