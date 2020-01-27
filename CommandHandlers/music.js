@@ -65,30 +65,27 @@ module.exports.playTheme = (member, args, streamOptions, streamTime) => {
     alreadyPlaying = true;
     theme = true;
     waitTime = streamTime * 1000;
-    data.getYtVideoInfo(args, function(info) {
-      const songInfo = info;
-      songDetails = info;
-      if (currentVoiceChannel && currentVoiceChannel.name == member.voiceChannel) {
-        playDispatcher(songInfo, streamOptions, false);
-      } else {
-        currentVoiceChannel = member.voiceChannel;
-        currentVoiceChannel.join().then(connection => {
-          voiceConnection = connection;
-          if (voiceConnection) {
-            playDispatcher(songInfo, streamOptions, false);
-          } else {
-            if (!voiceConnection) {
-              return {
-                error: '0',
-                message: 'failed to join voice channel'
-              }
+    songDetails = {video_url: args[1]};
+    if (currentVoiceChannel && currentVoiceChannel.name == member.voiceChannel) {
+      playDispatcher(songInfo, streamOptions, false);
+    } else {
+      currentVoiceChannel = member.voiceChannel;
+      currentVoiceChannel.join().then(connection => {
+        voiceConnection = connection;
+        if (voiceConnection) {
+          playDispatcher(songDetails, streamOptions, false);
+        } else {
+          if (!voiceConnection) {
+            return {
+              error: '0',
+              message: 'failed to join voice channel'
             }
           }
-        }).catch(err => {
-          console.log(err);
-        });
-      }
-    });
+        }
+      }).catch(err => {
+        console.log(err);
+      });
+    }
   }
 }
 

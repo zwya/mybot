@@ -26,22 +26,22 @@ module.exports.setTheme = (message, args, callback) => {
           endTime = result[1].split(":");
           if (Number(startTime[0]) >= 0 && Number(startTime[1]) >= 0 && Number(endTime[0]) >= 0 && Number(endTime[1]) >= 0 && (Number(endTime[0]) * 60 + Number(endTime[1]) <= info.length_seconds)) {
             if (data.userData[memberId]) {
-              data.userData[memberId].theme = info.title;
+              data.userData[memberId].theme = info.video_url;
               data.userData[memberId].startTime = result[0];
               data.userData[memberId].endTime = result[1];
               data.updateUser(memberId, {
-                theme: info.title,
+                theme: info.video_url,
                 startTime: result[0],
                 endTime: result[1]
               });
             } else {
               data.userData[memberId] = {};
-              data.userData[memberId].theme = info.title;
+              data.userData[memberId].theme = info.video_url;
               data.userData[memberId].startTime = result[0];
               data.userData[memberId].endTime = result[1];
               data.createUser({
                 userid: memberId,
-                theme: info.title,
+                theme: info.video_url,
                 startTime: result[0],
                 endTime: result[1]
               });
