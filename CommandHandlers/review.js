@@ -191,7 +191,6 @@ function findReview(query, array) {
 }
 
 function onReact(collected) {
-  console.log(currentMessage);
   const reaction = collected.first();
   const oldIndex = index;
   var newReviewsPromise = false;
