@@ -72,8 +72,13 @@ module.exports.getMovies = (callback) => {
         console.log(error);
       }
       else {
-        module.exports.data['movies']['top100'] = JSON.parse(response.body);
-        callback(module.exports.data['movies']['top100']);
+        try {
+          module.exports.data['movies']['top100'] = JSON.parse(response.body);
+          callback(module.exports.data['movies']['top100']);
+        }
+        catch(e) {
+          callback(false);
+        }
       }
     });
   }
@@ -173,6 +178,7 @@ module.exports.createUser = (user) => {
 }
 
 module.exports.createReview = (review) => {
+  console.log(review.keywords);
   mongodb.connect(connectionURL, function(err, db) {
     if (err) {
       console.log(err);
@@ -205,6 +211,50 @@ module.exports.deleteReview = (reviewid) => {
   });
 }
 
+module.exports.updateReview = (reviewname, data) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    var query = {
+      namelower: reviewname
+    };
+    var newValues = {
+      $set: data
+    };
+    dbo.collection('review').updateOne(query, newValues, function(err, res) {
+      if (err) {
+        console.log(err);
+      }
+    });
+  });
+}
+
+module.exports.paginateReview = (after, date, callback) => {
+  mongodb.connect(connectionURL, function(err, db) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    var dbo = db.db('discordbot');
+    query = {};
+    if (after) {
+      query['date'] = {'$gt': date};
+    }
+    else {
+      query['date'] = {'$lt': date};
+    }
+    dbo.collection('review').find(query).sort({date: -1}).limit(10).toArray(function(err, result) {
+      if (err) {
+        console.log(err);
+      }
+      callback(result);
+    });
+  });
+}
+
 module.exports.findReview = (query, array, callback) => {
   mongodb.connect(connectionURL, function(err, db) {
     if (err) {
@@ -213,7 +263,7 @@ module.exports.findReview = (query, array, callback) => {
     }
     var dbo = db.db('discordbot');
     if (array) {
-      dbo.collection('review').find(query).sort({date: 1}).limit(5).toArray(function(err, result) {
+      dbo.collection('review').find(query).sort({date: -1}).limit(10).toArray(function(err, result) {
         if (err) {
           console.log(err);
         }
@@ -251,3 +301,11 @@ module.exports.init = () => {
   module.exports.data = {movies: {}};
   module.exports.data['movies']['top100'] = null;
 }
+
+/*data.findReview({namelower: 'midsommar'}, false, response => {
+  if (response) {
+    var cpy = response;
+    cpy['date'] = new Date(response['date']);
+    data.updateReview('midsommar', cpy);
+  }
+});*/

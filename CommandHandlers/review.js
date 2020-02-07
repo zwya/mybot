@@ -5,15 +5,16 @@ var client = false;
 var embeds = false;
 var currentMessage = false;
 var filter = false;
+var generalBrowsing = false;
 var index = 0;
+var nextDate = false;
+var previousDate = false;
 
 module.exports.handleMessage = (message, args, callback) =>  {
   if(args[1] && args[1] == 'find') {
     if (args[2]) {
-      var name = args[2];
-      for (var i=3;i<args.length;i++) {
-        name = name + ' ' + args[i];
-      }
+      generalBrowsing = false;
+      const name = constructKeywords(args);
       data.findReview({namelower: name.toLowerCase()}, true, response => {
         if (response.length > 0) {
           callback({'embeds': createEmbeds(response)});
@@ -27,20 +28,7 @@ module.exports.handleMessage = (message, args, callback) =>  {
           Promise.all(promises).then(values => {
             if (values.length > 0) {
               embeds = createEmbeds(response);
-              if (currentMessage) {
-                currentMessage.clearReactions();
-              }
-              index = 0;
-              message.channel.send(embeds[0]).then(msg => {
-                currentMessage = msg;
-                currentMessage.react('◀️').then(msg1 => {
-                  currentMessage.react('▶️').then(msg2 => {
-                    currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                      onReact(collected);
-                    });
-                  });
-                });
-              });
+              createNewMessage(message);
             }
             else {
               callback({error: 'No results found'});
@@ -50,23 +38,15 @@ module.exports.handleMessage = (message, args, callback) =>  {
       });
     }
     else {
+      generalBrowsing = true;
+      nextDate = false;
+      previousDate = false;
       data.findReview({}, true, response => {
         if (response.length > 0) {
+          nextDate = response[0]['date'];
+          previousDate = response[response.length - 1]['date'];
           embeds = createEmbeds(response);
-          if (currentMessage) {
-            currentMessage.clearReactions();
-          }
-          index = 0;
-          message.channel.send(embeds[0]).then(msg => {
-            currentMessage = msg;
-            currentMessage.react('◀️').then(msg1 => {
-              currentMessage.react('▶️').then(msg2 => {
-                currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                  onReact(collected);
-                });
-              });
-            });
-          });
+          createNewMessage(message);
         }
         else {
           callback({error: 'No results found'});
@@ -75,30 +55,28 @@ module.exports.handleMessage = (message, args, callback) =>  {
     }
   }
   else if (args[1] && args[1] == 'remove') {
-    var name = args[2];
-    for (var i=3;i<args.length;i++) {
-      name = name + ' ' + args[i];
+    if (args[2]) {
+      const name = constructName(args);
+      data.findReview({namelower: name.toLowerCase(), userid: message.member.id}, false, response => {
+        if (response) {
+          data.deleteReview(response['_id']);
+          callback({message: 'Review deleted'});
+        }
+        else {
+          callback({message: 'Couldn\'t find review'});
+        }
+      });
     }
-    data.findReview({namelower: name.toLowerCase(), userid: message.member.id}, false, response => {
-      if (response) {
-        data.deleteReview(response['_id']);
-        callback({message: 'Review deleted'});
-      }
-      else {
-        callback({message: 'Couldn\'t find review'});
-      }
-    });
+    else {
+      callback({message: 'Delete what exactly?'});
+    }
   }
   else if (args[1]) {
     const category = args[1].toLowerCase();
     if (validCategories.includes(category)) {
       if (args[2]) {
-        var name = args[2];
-        for (var i=3;i<args.length;i++) {
-          name = name + ' ' + args[i];
-        }
+        const name = constructName(args);
         const keywords = constructKeywords(args);
-        console.log(keywords);
         data.findReview({userid: message.member.id, category: category, namelower: name.toLowerCase()}, false, response => {
           if(response) {
             callback({message: 'You have reviewed this game before.'});
@@ -144,7 +122,7 @@ module.exports.saveReview = (reviewData) => {
       }
     }
     if (properFormat) {
-      const now = new Date(Date.now()).toLocaleString();
+      const now = new Date();
       data.createReview({
         userid: reviewData.message.member.id,
         membername: reviewData.message.member.displayName,
@@ -215,38 +193,111 @@ function findReview(query, array) {
 function onReact(collected) {
   const reaction = collected.first();
   const oldIndex = index;
+  var newReviewsPromise = false;
   if (reaction) {
     if (reaction.emoji.name === '◀️') {
       if (index > 0) {
         index = index - 1;
       }
+      else {
+        if (generalBrowsing) {
+            newReviewsPromise = true;
+            data.paginateReview(true, nextDate, response => {
+            if (response.length > 0) {
+              nextDate = response[0]['date'];
+              previousDate = response[response.length - 1]['date'];
+              embeds = createEmbeds(response);
+              index = 0;
+              currentMessage.edit(embeds[index]).then(m1 => {
+                currentMessage.clearReactions().then(m2 => {
+                  currentMessage.react('◀️').then(m3 => {
+                    currentMessage.react('▶️').then(m4 => {
+                      currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                        onReact(collected);
+                      });
+                    });
+                  });
+                });
+              });
+            }
+          });
+        }
+      }
     } else {
       if (index < embeds.length - 1) {
         index = index + 1;
       }
+      else {
+        if (generalBrowsing) {
+            newReviewsPromise = true;
+            data.paginateReview(false, previousDate, response => {
+            if (response.length > 0) {
+              nextDate = response[0]['date'];
+              previousDate = response[response.length - 1]['date'];
+              embeds = createEmbeds(response);
+              index = 0;
+              currentMessage.edit(embeds[index]).then(m1 => {
+                currentMessage.clearReactions().then(m2 => {
+                  currentMessage.react('◀️').then(m3 => {
+                    currentMessage.react('▶️').then(m4 => {
+                      currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                        onReact(collected);
+                      });
+                    });
+                  });
+                });
+              });
+            }
+          });
+        }
+      }
     }
-    if (index != oldIndex) {
-      currentMessage.edit(embeds[index]).then(m1 => {
-        currentMessage.clearReactions().then(m2 => {
-          currentMessage.react('◀️').then(m3 => {
-            currentMessage.react('▶️').then(m4 => {
-              currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                onReact(collected);
+    if (!newReviewsPromise) {
+      if (index != oldIndex) {
+        currentMessage.edit(embeds[index]).then(m1 => {
+          currentMessage.clearReactions().then(m2 => {
+            currentMessage.react('◀️').then(m3 => {
+              currentMessage.react('▶️').then(m4 => {
+                currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                  onReact(collected);
+                });
               });
             });
           });
         });
-      });
-    }
-    else {
-      currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-        onReact(collected);
-      });
+      }
+      else {
+        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+          onReact(collected);
+        });
+      }
     }
   }
   else {
     currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
       onReact(collected);
     });
+  }
+}
+
+function createNewMessage(message) {
+  index = 0;
+  if (currentMessage) {
+    currentMessage.clearReactions();
+  }
+  message.channel.send(embeds[0]).then(msg => {
+    currentMessage = msg;
+    currentMessage.react('◀️').then(msg1 => {
+      currentMessage.react('▶️').then(msg2 => {
+        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(onReact);
+      });
+    });
+  });
+
+  function constructName(args) {
+    var name = args[2];
+    for (var i=3;i<args.length;i++) {
+      name = name + ' ' + args[i];
+    }
   }
 }
