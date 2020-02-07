@@ -191,7 +191,6 @@ function findReview(query, array) {
 }
 
 function onReact(collected) {
-  console.log('react');
   const reaction = collected.first();
   const oldIndex = index;
   var newReviewsPromise = false;
@@ -290,7 +289,9 @@ function createNewMessage(message) {
     currentMessage = msg;
     currentMessage.react('◀️').then(msg1 => {
       currentMessage.react('▶️').then(msg2 => {
-        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(onReact);
+        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+          onReact(collected);
+        });
       });
     });
   });
