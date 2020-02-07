@@ -13,6 +13,7 @@ const theme = require('./CommandHandlers/theme.js');
 const help = require('./CommandHandlers/help.js');
 const movie = require('./CommandHandlers/movie.js');
 const review = require('./CommandHandlers/review.js');
+const memes = require('./CommandHandlers/memes.js');
 const data = require('./data.js');
 const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
 
@@ -28,6 +29,7 @@ function discordClientInit() {
     console.log('I\'m Online');
     movie.init(client.user.id);
     review.init(client.user.id);
+    memes.init(client);
   });
 
   client.on('disconnect', () => {
@@ -188,6 +190,9 @@ function discordClientInit() {
           interceptMessageQueue.push({call: response['call'], data: response['data'], userid: message.member.id});
         }
       });
+    }
+    else if (args[0].toLowerCase() == prefix + 'setmemechn') {
+      memes.setChannel(client, args[1]);
     }
     //message.channel.send(text);
     //message.reply('pong'); replies to a message from a specifc user with mention

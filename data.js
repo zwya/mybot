@@ -296,6 +296,22 @@ module.exports.createServer = (guild) => {
   });
 }
 
+module.exports.getLatestMemes = (callback) => {
+  request('https://www.reddit.com/r/memes/.json?limit=5', function(error, response) {
+    if (error) {
+      console.log(error);
+    }
+    else {
+      var memes = [];
+      const data = JSON.parse(response.body).data;
+      data.children.forEach((item, i) => {
+        memes.push({title: item.data.title, id: item.data.name, ups:item.data.ups, over_18:item.data.over_18, url:item.data.url, created_utc: item.data.created_utc})
+      });
+      callback(memes);
+    }
+  });
+}
+
 module.exports.init = () => {
   getUserDataFromDB();
   module.exports.data = {movies: {}};
