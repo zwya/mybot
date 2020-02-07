@@ -4,6 +4,7 @@ const util = require('../util/util.js');
 
 var memes = {};
 var channel = false;
+var timeoutSet = false;
 
 module.exports.init = (client) => {
   memes['data'] = {};
@@ -14,8 +15,10 @@ module.exports.init = (client) => {
   }
 
   if ('channel' in meme) {
-    memes['channel'] = meme['channel'];
     channel = client.channels.get(meme['channel']);
+    if (channel) {
+      memes['channel'] = meme['channel'];
+    }
   }
 
   if ('lastpost' in meme) {
@@ -35,25 +38,11 @@ module.exports.setChannel = (client, channelid) => {
   if (newChannel && newChannel.type == 'text') {
     memes['channel'] = channelid;
     channel = newChannel;
-    postMemeFetch();
+    handleMeme();
   }
 }
 
-function getMemes(callback) {
-  data.getLatestMemes(response => {
-    if(response.length > 0) {
-      response.forEach((item, i) => {
-        if (!(item.id in memes['data']) && item.ups >= 10000 && !item.over_18) {
-          memes['data'][item.id] = item;
-          memes['data'][item.id]['posted'] = false;
-        }
-      });
-    }
-    callback();
-  });
-}
-
-function postMemeFetch() {
+function handleMeme() {
   const keys = Object.keys(memes.data);
   for (var i=0;i<keys.length;i++) {
     const dt = new Date(memes['data'][keys[i]]['created_utc'] * 1000);
@@ -84,6 +73,24 @@ function postMemeFetch() {
     }
   }
   util.savejson('memes.json', memes);
+}
+
+function getMemes(callback) {
+  data.getLatestMemes(response => {
+    if(response.length > 0) {
+      response.forEach((item, i) => {
+        if (!(item.id in memes['data']) && item.ups >= 10000 && !item.over_18) {
+          memes['data'][item.id] = item;
+          memes['data'][item.id]['posted'] = false;
+        }
+      });
+    }
+    callback();
+  });
+}
+
+function postMemeFetch() {
+  handleMeme();
   if (countNotPosted() < 10) {
     setTimeout(() => {
       getMemes(postMemeFetch);
