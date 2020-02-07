@@ -191,6 +191,7 @@ function findReview(query, array) {
 }
 
 function onReact(collected) {
+  console.log('react');
   const reaction = collected.first();
   const oldIndex = index;
   var newReviewsPromise = false;
@@ -207,7 +208,7 @@ function onReact(collected) {
               nextDate = response[0]['date'];
               previousDate = response[response.length - 1]['date'];
               embeds = createEmbeds(response);
-              index = 0;
+              index = response.length - 1;
               currentMessage.edit(embeds[index]).then(m1 => {
                 currentMessage.clearReactions().then(m2 => {
                   currentMessage.react('◀️').then(m3 => {
