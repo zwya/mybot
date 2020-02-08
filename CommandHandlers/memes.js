@@ -6,6 +6,7 @@ var memes = {};
 var channel = false;
 
 module.exports.init = (client) => {
+  console.log('Init Called');
   memes['data'] = {};
   if ('data' in meme) {
     for (const [key, value] of Object.entries(meme.data)) {
@@ -78,8 +79,6 @@ function postMemeFetch() {
           timeout = 0;
         }
       }
-      console.log(lastPostDate);
-      console.log(timeout);
       if (countNotPosted() < 10) {
         setTimeout(() => {
           getMemes(postMemeFetch);
