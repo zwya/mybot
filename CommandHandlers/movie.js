@@ -7,7 +7,7 @@ var time = 0;
 var filter = false;
 var timer = false;
 var embedMessage = false;
-var moviesLength = false;
+const moviesLength = 100;
 
 module.exports.sendEmbed = (message) => {
   index = 0;
@@ -71,27 +71,30 @@ module.exports.sendEmbed = (message) => {
 
 module.exports.init = (clientID) => {
   filter = (reaction, user) => (reaction.emoji.name === '◀️' || reaction.emoji.name === '▶️') && clientID != user.id;
-  data.getMovies(movies => {
-    moviesLength = movies.movies.length;
-  });
 }
 
 function getMovie(callback) {
   data.getMovies(movies => {
-    var movie = movies.movies[index];
-    if (!movie.duration) {
-      movie.duration = '???';
-    }
-    movie.genre = '';
-    if (movie.genres && movie.genres.length > 0) {
-      movie.genre = movie.genres[0].genre;
-      for (var i = 1; i < movie.genres.length; i++) {
-        movie.genre = movie.genre + ', ' + movie.genres[i].genre;
+    if (movies && 'movies' in movies) {
+      var movie = movies.movies[index];
+      if (!movie.duration) {
+        movie.duration = '???';
       }
-    } else {
-      movie.genre = '???';
+      movie.genre = '';
+      if (movie.genres && movie.genres.length > 0) {
+        movie.genre = movie.genres[0].genre;
+        for (var i = 1; i < movie.genres.length; i++) {
+          movie.genre = movie.genre + ', ' + movie.genres[i].genre;
+        }
+      } else {
+        movie.genre = '???';
+      }
+      callback(movie);
     }
-    callback(movie);
+    else {
+      console.log("An Error Happened");
+      console.log(movies);
+    }
   });
 }
 
@@ -102,13 +105,6 @@ function createEmbed(movie, existingEmbed) {
     existingEmbed.fields[0].value = movie.genre;
     existingEmbed.title = movie.title;
     existingEmbed.image = movie.imgurl;
-    /*const embed = new Discord.RichEmbed(existingEmbed)
-      .setTitle(movie.title)
-      .setImage(movie.imgurl)
-      .addField('Rating', movie.rating, true)
-      .addField('Duration', movie.duration, true)
-      .addField('Genres', movie.genre);
-    return embed;*/
   }
   const embed = new Discord.RichEmbed()
     .setColor('#0099ff')

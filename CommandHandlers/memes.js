@@ -4,6 +4,7 @@ const util = require('../util/util.js');
 
 var memes = {};
 var channel = false;
+const hrsBetweenPost = 4;
 
 module.exports.init = (client) => {
   memes['data'] = {};
@@ -73,7 +74,7 @@ function postMemeFetch() {
         timeout = 0;
       }
       else {
-        timeout = (6 * 60 * 60 * 1000) - (new Date() - lastPostDate);
+        timeout = (hrsBetweenPost * 60 * 60 * 1000) - (new Date() - lastPostDate);
         if (timeout < 0) {
           timeout = 0;
         }
@@ -115,7 +116,7 @@ function sendMeme() {
   var condition = false;
   if ('lastpost' in memes) {
     const lastPostDate = new Date(memes['lastpost']);
-    condition = ('channel' in memes && (new Date() - lastPostDate) / 1000 / 60 / 60 > 6);
+    condition = ('channel' in memes && (new Date() - lastPostDate) / 1000 / 60 / 60 > hrsBetweenPost);
   }
   else {
     condition = ('channel' in memes);
