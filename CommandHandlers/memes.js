@@ -6,7 +6,6 @@ var memes = {};
 var channel = false;
 
 module.exports.init = (client) => {
-  console.log('Init Called');
   memes['data'] = {};
   if ('data' in meme) {
     for (const [key, value] of Object.entries(meme.data)) {
