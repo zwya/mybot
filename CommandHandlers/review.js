@@ -295,11 +295,12 @@ function createNewMessage(message) {
       });
     });
   });
+}
 
-  function constructName(args) {
-    var name = args[2];
-    for (var i=3;i<args.length;i++) {
-      name = name + ' ' + args[i];
-    }
+function constructName(args) {
+  var name = args[2];
+  for (var i=3;i<args.length;i++) {
+    name = name + ' ' + args[i];
   }
+  return name;
 }
