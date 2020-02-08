@@ -78,6 +78,8 @@ function postMemeFetch() {
           timeout = 0;
         }
       }
+      console.log(lastPostDate);
+      console.log(timeout);
       if (countNotPosted() < 10) {
         setTimeout(() => {
           getMemes(postMemeFetch);
