@@ -220,6 +220,26 @@ function onReact(collected) {
                 });
               });
             }
+            else {
+              if (index != oldIndex) {
+                currentMessage.edit(embeds[index]).then(m1 => {
+                  currentMessage.clearReactions().then(m2 => {
+                    currentMessage.react('◀️').then(m3 => {
+                      currentMessage.react('▶️').then(m4 => {
+                        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                          onReact(collected);
+                        });
+                      });
+                    });
+                  });
+                });
+              }
+              else {
+                currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                  onReact(collected);
+                });
+              }
+            }
           });
         }
       }
@@ -247,6 +267,26 @@ function onReact(collected) {
                   });
                 });
               });
+            }
+            else {
+              if (index != oldIndex) {
+                currentMessage.edit(embeds[index]).then(m1 => {
+                  currentMessage.clearReactions().then(m2 => {
+                    currentMessage.react('◀️').then(m3 => {
+                      currentMessage.react('▶️').then(m4 => {
+                        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                          onReact(collected);
+                        });
+                      });
+                    });
+                  });
+                });
+              }
+              else {
+                currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+                  onReact(collected);
+                });
+              }
             }
           });
         }
