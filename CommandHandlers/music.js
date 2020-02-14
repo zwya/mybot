@@ -119,6 +119,9 @@ module.exports.onMessage = async (message, args) => {
 }
 
 module.exports.playTheme = (theme, guildid, voiceChannel) => {
+  if (!(guildid in guilds)) {
+    guilds[guildid] = {queue: [], connection: false, dispatcher: false, playing: false, timeout: false, voiceChannel: false};
+  }
   play(theme, guildid, voiceChannel, false, 'mi');
 }
 
