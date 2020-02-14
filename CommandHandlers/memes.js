@@ -91,8 +91,8 @@ function setPostMemes(postMemes, guildid, channel) {
   });
 }
 
-function setChannel(channelid, guildid, channel) {
-  const newChannel = channels.fetch(channelid);
+async function setChannel(channelid, guildid, channel) {
+  const newChannel = await channels.fetch(channelid);
   if (newChannel && newChannel.type == 'text') {
     getGuild(guildid).then(guild => {
       var gld = guild;
@@ -173,8 +173,8 @@ function sendMeme(guildid) {
   if ('timeout' in guilds[guildid]) {
     clearTimeout(guilds[guildid]['timeout']);
   }
-  getGuild(guildid).then(guild => {
-    const channel = channels.fetch(guild['memeChannel']);
+  getGuild(guildid).then(async guild => {
+    const channel = await channels.fetch(guild['memeChannel']);
     if (guild && guild['shouldMeme'] && guild['memeChannel'] && channel) {
       getAGoodMeme().then(meme => {
         if (meme) {
