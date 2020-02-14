@@ -1,95 +1,128 @@
 const ytdl = require('ytdl-core');
-const data = require('../data.js');
+const urlExists = require('url-exists');
+const outside = require('../db/outside.js');
+const model = require('../db/model.js');
+var LRU = require('lru-cache');
 
-var isReady;
-var voiceConnection;
-var dispatcher;
-var queue;
-var alreadyPlaying;
-var currentVoiceChannel;
-var songDetails;
-var theme;
-var waitTime;
+var guilds = {};
+var voiceMappings = new LRU(50);
 
-module.exports.play = async (member, args, streamOptions, callback) => {
-  if (args[1]) {
-    if (!alreadyPlaying) {
-      alreadyPlaying = true;
-      data.getYtVideoInfo(args, function(info) {
-        const songInfo = info;
-        songDetails = info;
-        if (currentVoiceChannel && currentVoiceChannel.name == member.voiceChannel) {
-          playDispatcher(songInfo, streamOptions, callback);
-        } else {
-          currentVoiceChannel = member.voiceChannel;
-          currentVoiceChannel.join().then(connection => {
-            voiceConnection = connection;
-            if (voiceConnection) {
-              playDispatcher(songInfo, streamOptions, callback);
-            } else {
-              if (!voiceConnection) {
-                return {
-                  error: '0',
-                  message: 'failed to join voice channel'
-                }
-              }
-            }
-          }).catch(err => {
-            console.log(err);
-          });
+const acceptedPlayArgs = ['myinstants', 'mi'];
+
+module.exports.onMessage = async (message, args) => {
+  var result = await argsValid(args);
+  if (result['valid']) {
+    const guildid = message.guild.id;
+    if (args[0] == 'play') {
+      if (!(guildid in guilds)) {
+        guilds[guildid] = {queue: [], connection: false, dispatcher: false, playing: false, timeout: false, voiceChannel: false};
+      }
+      const channel = message.member.voice.channel;
+      if (userNotWithBot(channel, guildid)) {
+        message.channel.send('You have to be in the same channel as the bot to control it');
+        return;
+      }
+      if (!channel) {
+        message.channel.send('You are not in a voice channel.');
+        return;
+      }
+      if (result['path'] == 0) {
+        if (guilds[guildid]['playing']) {
+          guilds[guildid]['queue'].push({link: args[2], type: 'mi'});
         }
-      });
-    } else {
-      data.getYtVideoInfo(args, function(info) {
-        const songInfo = info;
-        songDetails = info;
-        queue.push({
-          'member': member,
-          'args': args
-        });
-        callback({
-          message: songInfo.title + ' has been added to the queue!'
-        });
-      });
-    }
-  } else if (!args[1]) {
-    callback({
-      error: '1',
-      message: 'no argument supplied'
-    });
-  }
-}
-
-module.exports.playTheme = (member, args, streamOptions, streamTime) => {
-  if (!alreadyPlaying) {
-    alreadyPlaying = true;
-    theme = true;
-    waitTime = streamTime * 1000;
-    songDetails = {video_url: args[1]};
-    if (currentVoiceChannel && currentVoiceChannel.name == member.voiceChannel) {
-      playDispatcher(songInfo, streamOptions, false);
-    } else {
-      currentVoiceChannel = member.voiceChannel;
-      currentVoiceChannel.join().then(connection => {
-        voiceConnection = connection;
-        if (voiceConnection) {
-          playDispatcher(songDetails, streamOptions, false);
-        } else {
-          if (!voiceConnection) {
-            return {
-              error: '0',
-              message: 'failed to join voice channel'
-            }
+        else {
+          play(args[2], guildid, channel, message.channel, 'mi');
+        }
+      }
+      else {
+        var mapping = voiceMappings.get(guildid);
+        if (!mapping) {
+          var guildData = await model.findOne('serverdata', {guildid: guildid}, {voicemap: 1});
+          if (guildData) {
+            mapping = guildData['voicemap'];
+            voiceMappings.set(guildid, mapping);
           }
         }
-      }).catch(err => {
-        console.log(err);
-      });
+        if (mapping) {
+          if (args[1] in mapping) {
+            var link = 'https://www.myinstants.com/media/sounds/' + mapping[args[1]];
+            if (guilds[guildid]['playing']) {
+              guilds[guildid]['queue'].push({link: link, type: 'mi'});
+            }
+            else {
+              play(link, guildid, channel, message.channel, 'mi');
+            }
+            return;
+          }
+        }
+        else {
+          voiceMappings.set(guildid, {});
+        }
+        var videoName = args[1];
+        for (var i=2;i<args.length;i++) {
+          videoName = videoName + ' ' + args[i];
+        }
+        if (guilds[guildid]['playing']) {
+          guilds[guildid]['queue'].push({link: videoName, type: 'yt'});
+          message.channel.send(videoName + ' added to queue');
+        }
+        else {
+          play(videoName, guildid, channel, message.channel, 'yt');
+        }
+      }
+      if (guildid in guilds) {
+        const guild = guilds[guildid];
+        if ('timeout' in guild) {
+          clearTimeout(guild['timeout']);
+          guild['timeout'] = false;
+        }
+      }
+    }
+    else if (args[0] == 'skip') {
+      var skipped = false;
+      if (guildid in guilds) {
+        const guild = guilds[guildid];
+        if (guild['playing']) {
+          skipped = true;
+          guild['dispatcher'].end('skip');
+        }
+      }
+      if (!skipped) {
+        message.channel.send('Nothing is playing');
+      }
+    }
+    else if (args[0] == 'map') {
+      if (args[1] && args[2]) {
+        map(guildid, args[1], args[2], message.channel);
+      }
+      else {
+        message.channel.send('Invalid arguments');
+      }
+    }
+    else if (args[0] == 'unmap') {
+      if (args[1]) {
+        unmap(guildid, args[1], message.channel);
+      }
+      else {
+        message.channel.send('Invalid arguments');
+      }
+    }
+  }
+  else {
+    if ('message' in result) {
+      message.channel.send(result['message']);
+    }
+    else {
+      message.channel.send('Invalid command');
     }
   }
 }
 
-module.exports.stop = (channel, callback) => {
+module.exports.playTheme = (theme, guildid, voiceChannel) => {
+  play(theme, guildid, voiceChannel, false, 'mi');
+}
+
+/*module.exports.stop = (channel, callback) => {
   if (alreadyPlaying) {
     if (channel && channel.name == currentVoiceChannel.name) {
       dispatcher.pause();
@@ -111,27 +144,6 @@ module.exports.resume = (channel, callback) => {
   if (alreadyPlaying) {
     if (channel && channel.name == currentVoiceChannel.name) {
       dispatcher.resume();
-    } else {
-      callback({
-        error: '3',
-        message: 'You have to be in the same channel as the bot to control it.'
-      });
-    }
-  } else {
-    callback({
-      error: '7',
-      message: 'The bot isn\'t playing anything.'
-    });
-  }
-}
-
-module.exports.skip = (channel, callback) => {
-  if (alreadyPlaying) {
-    if (channel && channel.name == currentVoiceChannel.name) {
-      dispatcher.end('temp');
-      callback({
-        message: 'Song has been skipped.'
-      });
     } else {
       callback({
         error: '3',
@@ -194,9 +206,9 @@ module.exports.seek = (args, channel, callback, theme) => {
       message: 'The bot isn\'t playing anything.'
     });
   }
-}
+}*/
 
-module.exports.volume = (args, channel, callback) => {
+/*module.exports.volume = (args, channel, callback) => {
   if (alreadyPlaying) {
     if (channel && channel.name == currentVoiceChannel.name) {
       const regex = /\d+/;
@@ -232,59 +244,228 @@ module.exports.volume = (args, channel, callback) => {
       message: 'The bot isn\'t playing anything.'
     });
   }
-}
+}*/
 
-module.exports.init = () => {
-  alreadyPlaying = false;
-  queue = [];
-  volume = 100;
-  theme = false;
-  currentVoiceChannel = null;
-}
+//module.exports.commands = ['play', 'stop', 'skip', 'volume', 'seek', 'map'];
+module.exports.commands = ['play', 'skip', 'map', 'unmap'];
 
-function playDispatcher(songInfo, streamOptions, callback) {
-  alreadyPlaying = true;
-  if (!streamOptions) {
-    var streamOptions = {};
-  }
-  var stream = ytdl(songInfo.video_url, {
-    filter: 'audioonly'
-  });
-  console.log('Playing Music');
-  if (callback) {
-    callback({
-      message: 'Now Playing ' + songInfo.title
-    });
-  }
-  dispatcher = voiceConnection.playStream(stream, streamOptions);
-  dispatcher.on('start', () => {
-    console.log('Dispatcher Started');
-    if (theme) {
-      checkThemeTimeEnded();
-    }
-  });
-  dispatcher.on("end", end => {
-    console.log('Dispatcher Ended');
-    console.log(end);
-    alreadyPlaying = false;
-    if (end && end != 'seek' && end != 'volume') {
-      if (queue.length > 0) {
-        console.log('playing next song');
-        next = queue.shift();
-        module.exports.play(next.member, next.args, false, callback);
+function argsValid(args, callback) {
+  return new Promise(async resolve => {
+    if (args[0] == 'play') {
+      if (args[1] && args[2]) {
+        if (acceptedPlayArgs.includes(args[1])) {
+          var result = await checkCorrectLink('https://www.myinstants.com/media/sounds/', milink);
+          if (result) {
+            resolve({valid: true, path: 0});
+          }
+          else {
+            resolve({valid: false, message: 'Link is dead'});
+          }
+        }
+        else {
+          resolve({valid: true, path: 1});
+        }
+      }
+      else if (args[1]) {
+        resolve({valid: true, path: 1});
+      }
+      else {
+        resolve({valid: false, message: 'Missing arguments'});
       }
     }
+    else if (args[0] == 'skip') {
+      resolve({valid: true});
+    }
+    else if (args[0] == 'map' && args[1] && args[2]) {
+      var result = await checkCorrectLink('https://www.myinstants.com/media/sounds/', args[1]);
+      if (result) {
+        resolve({valid: true});
+      }
+      else {
+        resolve({valid: false});
+      }
+    }
+    else if (args[0] == 'unmap' && args[1]) {
+      resolve({valid: true});
+    }
+    else {
+      resolve({valid: false})
+    }
   });
 }
 
-function checkThemeTimeEnded() {
-  setTimeout(() => {
-    if (dispatcher.time >= waitTime) {
-      dispatcher.end('temp');
-      console.log('Theme Ended');
-      theme = false;
-    } else {
-      checkThemeTimeEnded()
+async function play(videoName, guildid, voiceChannel, textChannel, playType) {
+  const guild = guilds[guildid];
+  guild['voiceChannel'] = voiceChannel;
+  var info = false;
+  if (playType == 'yt') {
+    info = await outside.getYtVideoInfo(videoName);
+    if (!info) {
+      textChannel.send('An error happened while trying to get video info');
+      clearGuild(guildid);
+      return;
     }
-  }, 1000);
+  }
+  guild['playing'] = true;
+  if (textChannel && info) {
+    textChannel.send('Now Playing ' + info.title);
+  }
+  const conn = await getConnection(guild);
+  var playable = false;
+  if (playType == 'yt') {
+    playable = ytdl(info.video_url, {
+      filter: 'audioonly'
+    });
+  }
+  else if (playType == 'mi') {
+    playable = videoName;
+  }
+  if (playable) {
+    var dispatcher = conn.play(playable);
+    guild['dispatcher'] = dispatcher;
+    dispatcher.on('end', reason => {
+      onDispatcherEnd(guildid, textChannel);
+    });
+  }
+  else {
+    console.log('This is not a proper type to play');
+  }
+}
+
+function onDispatcherEnd(guildid, textChannel) {
+  const guild = guilds[guildid];
+  guild['playing'] = false;
+  var queue = guild['queue'];
+  if (queue.length > 0) {
+    var next = queue.shift();
+    play(next['link'], guildid, guild['voiceChannel'], textChannel, next['type']);
+  }
+  if (queue.length == 0) {
+    guild['timeout'] = setTimeout(() => {
+      clearGuild(guildid);
+    }, 1000 * 60 * 15);
+  }
+}
+
+function clearGuild(guildid) {
+  const guild = guilds[guildid];
+  guild['voiceChannel'].leave();
+  delete guilds[guildid];
+}
+
+async function getConnection(guild) {
+  var conn = false;
+  if (!guild['connection']) {
+    conn = await guild['voiceChannel'].join();
+    guild['connection'] = conn;
+  }
+  else {
+    conn = guild['connection'];
+  }
+  return conn;
+}
+
+function userNotWithBot(userChannel, guildid) {
+  if (guildid in guilds) {
+    const guild = guilds[guildid];
+    if (guild['voiceChannel']) {
+      if (guild['voiceChannel']['id'] != userChannel['id']) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function linkExists(link) {
+  return new Promise(resolve => {
+    urlExists(link, (err, exists) => {
+      if (err) {
+        resolve(false);
+        console.log(err);
+      }
+      else {
+        resolve(exists);
+      }
+    });
+  });
+}
+
+function checkCorrectLink(defLink, link) {
+  return new Promise(async resolve => {
+    if (link.startsWith(defLink)) {
+      var exists = await linkExists(link);
+      resolve(exists);
+    }
+    else {
+      resolve(false);
+    }
+  });
+}
+
+async function map(guildid, milink, alias, channel) {
+  var mapping = voiceMappings.get(guildid);
+  if (!mapping) {
+    var result = await model.findOne('serverdata', {guildid: guildid}, {voicemap: 1});
+    if (result) {
+      if ('voicemap' in result) {
+        mapping = result['voicemap'];
+      }
+      else {
+        mapping = {};
+      }
+    }
+    else {
+      var result = await model.insertOne('serverdata', {guildid: guildid});
+      mapping = {};
+    }
+  }
+  if (Object.keys(mapping).length < 10) {
+    var result = await checkCorrectLink('https://www.myinstants.com/media/sounds/', milink);
+    if (result) {
+      mapping[alias] = milink.split('https://www.myinstants.com/media/sounds/')[1];
+      voiceMappings.set(guildid, mapping);
+      var result = await model.updateOne('serverdata', guildid, {voicemap: mapping});
+      if (result) {
+        channel.send('Alias set succesfully');
+      }
+      else {
+        channel.send('An error happened while updating server data, consult a dev');
+      }
+    }
+    else {
+      channel.send('Link is dead');
+    }
+  }
+  else {
+    channel.send('Each guild can only have a maximum of 10 mappings');
+  }
+}
+
+async function unmap(guildid, alias, channel) {
+  var mapping = voiceMappings.get(guildid);
+  if (!mapping) {
+    var result = await model.findOne('serverdata', {guildid: guildid}, {voicemap: 1});
+    if (result && 'voicemap' in result) {
+      mapping = result['voicemap'];
+    }
+    else {
+      channel.send('Your guild doesn\'t have any mappings');
+      return;
+    }
+  }
+  if (alias in mapping) {
+    delete mapping[alias];
+    voiceMappings.set(guildid, mapping);
+    var result = await model.updateOne('serverdata', guildid, {voicemap: mapping});
+    if (result) {
+      channel.send('Alias deleted');
+    }
+    else {
+      channel.send('An error happened while updating the database, consult a dev');
+    }
+  }
+  else {
+    channel.send('Alias doesn\'t exist');
+  }
 }

@@ -1,150 +1,127 @@
-const data = require('../data.js');
+const model = require('../db/model.js');
 const validCategories = ['game', 'anime', 'series', 'movie'];
-const Discord = require('discord.js');
-var client = false;
-var embeds = false;
-var currentMessage = false;
+const MessageEmbed = require('discord.js').MessageEmbed;
 var filter = false;
-var generalBrowsing = false;
-var index = 0;
-var nextDate = false;
-var previousDate = false;
+var guilds = {};
+const MODE = {
+  NEW: 0,
+  CHANGE: 1,
+  RESET: 2
+}
+const FETCH_COUNT = 10;
 
-module.exports.handleMessage = (message, args, callback) =>  {
-  if(args[1] && args[1] == 'find') {
-    if (args[2]) {
-      generalBrowsing = false;
-      const name = constructKeywords(args);
-      data.findReview({namelower: name.toLowerCase()}, true, response => {
-        if (response.length > 0) {
-          callback({'embeds': createEmbeds(response)});
-        }
-        else {
-          const keywords = constructKeywords(args);
-          var promises = [];
-          for (var i=0;i<keywords.length;i++) {
-            promises.push(findReview({keywords: {$in: [keywords[i]]}}, true));
-          }
-          Promise.all(promises).then(values => {
-            if (values.length > 0) {
-              embeds = createEmbeds(response);
-              createNewMessage(message);
-            }
-            else {
-              callback({error: 'No results found'});
-            }
-          });
-        }
-      });
-    }
-    else {
-      generalBrowsing = true;
-      nextDate = false;
-      previousDate = false;
-      data.findReview({}, true, response => {
-        if (response.length > 0) {
-          nextDate = response[0]['date'];
-          previousDate = response[response.length - 1]['date'];
-          embeds = createEmbeds(response);
-          createNewMessage(message);
-        }
-        else {
-          callback({error: 'No results found'});
-        }
-      });
-    }
-  }
-  else if (args[1] && args[1] == 'remove') {
-    if (args[2]) {
-      const name = constructName(args);
-      data.findReview({namelower: name.toLowerCase(), userid: message.member.id}, false, response => {
-        if (response) {
-          data.deleteReview(response['_id']);
-          callback({message: 'Review deleted'});
-        }
-        else {
-          callback({message: 'Couldn\'t find review'});
-        }
-      });
-    }
-    else {
-      callback({message: 'Delete what exactly?'});
-    }
-  }
-  else if (args[1]) {
-    const category = args[1].toLowerCase();
-    if (validCategories.includes(category)) {
-      if (args[2]) {
+module.exports.onMessage = async (message, args) => {
+  var query = {};
+  const guildid = message.guild.id;
+  if (args.length >= 2) {
+    if (args[1] && args[1] == 'find') {
+      if (args.length >= 3) {
         const name = constructName(args);
         const keywords = constructKeywords(args);
-        data.findReview({userid: message.member.id, category: category, namelower: name.toLowerCase()}, false, response => {
-          if(response) {
-            callback({message: 'You have reviewed this game before.'});
-          }
-          else {
-            if(validCategories.includes(category)) {
-              callback({call: module.exports.saveReview, message: 'The next message you write will be automatically saved as the review', data:{category:category, name: name, callback: callback, keywords: keywords}});
-            }
-          }
-        });
+        query = {$or: [{namelower: name.toLowerCase()}, {keywords: {$in: keywords}}]};
+      }
+      var documents = await model.paginate('review', query, {name: 'date'}, false, FETCH_COUNT);
+      if (documents) {
+        const embeds = createEmbeds(documents);
+        cleanOld(guildid);
+        if (!(guildid in guilds)) {
+          guilds[guildid] = {message: false, index: 0, query: query, embeds: embeds, timeout: false, previousDate: documents[0]['date'], nextDate: documents[documents.length-1]['date']};
+        }
+        createNewMessage(message.channel, guildid, embeds[0]);
       }
       else {
-        callback({message: 'You haven\'t typed a name'});
+        message.channel.send('No results found');
       }
     }
-    else {
-      callback({error: 'Review isn\'t valid'});
+    else if (args[1] && validCategories.includes(args[1])) {
+      if (args.length > 2) {
+        const name = constructName(args);
+        var result = await model.findOne('review', {userid: message.author.id, namelower: name.toLowerCase()}, {});
+        if (result) {
+          message.channel.send('You\'ve already reviewed this game');
+          return;
+        }
+        const keywords = constructKeywords(args);
+        module.exports.intercept[message.author.id] = {name: name, keywords: keywords, callback: module.exports.saveReview, category: args[1]};
+        message.channel.send('Your next message will be saved as your review');
+      }
+      else {
+        message.channel.send('Name not supplied');
+      }
+    }
+    else if (args[1] && args[1] == 'remove') {
+      const name = constructName(args);
+      var result = await model.findOne('review', {userid: message.author.id, namelower: name.toLowerCase()});
+      if (result) {
+        var result = await model.deleteOne('review', result['_id']);
+        if (result) {
+          message.channel.send('Your review has been deleted');
+          return;
+        }
+        message.channel.send('Some error happened while deleting your review from the database, consult with a dev');
+      }
+      else {
+        message.channel.send('I can\'t find this review');
+      }
     }
   }
   else {
-    callback({message: 'No argument'});
+    message.channel.send('No Argument');
   }
 }
 
-module.exports.saveReview = (reviewData) => {
-  const parts = reviewData.message.content.split('\n');
+module.exports.commands = ['review'];
+module.exports.intercept = false;
+
+module.exports.saveReview = async (data) => {
+  const parts = data.message.content.split('\n');
   if (parts.length >= 2 && parts.length % 2 == 0 && parts.length <= 12) {
     var properFormat = true;
     for (var i=0;i<parts.length;i++) {
       if(i % 2 == 0) {
         if (parts[i].length > 100) {
           properFormat = false;
-          reviewData.callback({error: 'Titles must not exceed 100 characters'});
+          data.message.channel.send('Titles must not exceed 100 characters');
           break;
         }
       }
       else {
         if (parts[i].length > 800) {
           properFormat = false;
-          reviewData.callback({error: 'Text must not exceed 800 characters'});
+          data.message.channel.send('Text must not exceed 800 characters');
           break;
         }
       }
     }
     if (properFormat) {
       const now = new Date();
-      data.createReview({
-        userid: reviewData.message.member.id,
-        membername: reviewData.message.member.displayName,
-        text: reviewData.message.content,
-        category: reviewData.category,
-        name: reviewData.name,
-        namelower: reviewData.name.toLowerCase(),
+      var result = await model.insertOne('review', {
+        userid: data.message.member.id,
+        membername: data.message.member.displayName,
+        text: data.message.content,
+        category: data.category,
+        name: data.name,
+        namelower: data.name.toLowerCase(),
         date: now,
-        keywords: reviewData.keywords
+        keywords: data.keywords
       });
-      reviewData.callback({message: 'Your review has been saved'});
+      if (result) {
+        data.message.channel.send('Your review has been saved');
+      }
+      else {
+        data.message.channel.send('Some error happened while saving your review in the database, consult with a dev');
+      }
     }
   }
   else {
-    reviewData.callback({error: 'Improper review format'});
+    data.message.channel.send('Improper review format');
   }
 }
 
 function createEmbeds(response) {
   var embeds = [];
   for (var i=0;i<response.length;i++) {
-    var embed = new Discord.RichEmbed()
+    var embed = new MessageEmbed()
       .setColor('#0099ff')
       .setTitle(response[i]['membername'])
       .addField('Name', response[i]['name'], true)
@@ -165,8 +142,8 @@ function createEmbeds(response) {
   return embeds;
 }
 
-module.exports.init = (clientID) => {
-  filter = (reaction, user) => (reaction.emoji.name === '◀️' || reaction.emoji.name === '▶️') && clientID != user.id;
+module.exports.init = (data) => {
+  filter = (reaction, user) => (reaction.emoji.name === '◀️' || reaction.emoji.name === '▶️') && data['botid'] != user.id;
 }
 
 function constructKeywords(args) {
@@ -177,164 +154,127 @@ function constructKeywords(args) {
   return keywords;
 }
 
-function findReview(query, array) {
-  return new Promise(function(resolve, reject){
-    data.findReview(query, array, response => {
-      if(response && response.length != 0) {
-        resolve(response[0]);
-      }
-      else {
-        resolve(null);
-      }
-    });
+async function onReact(collected, guildid) {
+  const reaction = collected.first();
+  if (reaction) {
+    clearTimeout(guilds[guildid]['timeout']);
+    guilds[guildid]['timeout'] = setTimeout(() => {
+      cleanOld(guildid);
+    }, 1000 * 60 * 5);
+    var embed = false;
+    if (reaction.emoji.name === '◀️') {
+      embed = await getPreviousEmbed(guildid);
+    }
+    else {
+      embed = await getNextEmbed(guildid);
+    }
+    if (embed) {
+      guilds[guildid]['message'].edit(embed).then(m => {
+        setupReactions(guildid, MODE.CHANGE);
+      });
+      return;
+    }
+    setupReactions(guildid, MODE.RESET);
+    return;
+  }
+  setupReactions(guildid, MODE.RESET);
+}
+
+function getPreviousEmbed(guildid) {
+  return new Promise(async resolve => {
+    const guild = guilds[guildid];
+    var index = guild['index']
+    if (index > 0) {
+      index = index - 1;
+      guild['index'] = index;
+      resolve(guild['embeds'][index]);
+      return;
+    }
+    var documents = await model.paginate('review', guild['query'], {name: 'date', after: guild['previousDate']}, true, FETCH_COUNT);
+    if (documents) {
+      const reversedDocs = documents.reverse();
+      const embeds = createEmbeds(reversedDocs);
+      guild['embeds'] = embeds;
+      guild['index'] = embeds.length - 1;
+      guild['previousDate'] = reversedDocs[0]['date'];
+      guild['nextDate'] = reversedDocs[reversedDocs.length-1]['date'];
+      resolve(embeds[guild['index']]);
+    }
+    else {
+      resolve(false);
+    }
   });
 }
 
-function onReact(collected) {
-  const reaction = collected.first();
-  const oldIndex = index;
-  var newReviewsPromise = false;
-  if (reaction) {
-    if (reaction.emoji.name === '◀️') {
-      if (index > 0) {
-        index = index - 1;
-      }
-      else {
-        if (generalBrowsing) {
-            newReviewsPromise = true;
-            data.paginateReview(true, nextDate, response => {
-            if (response.length > 0) {
-              nextDate = response[0]['date'];
-              previousDate = response[response.length - 1]['date'];
-              embeds = createEmbeds(response);
-              index = response.length - 1;
-              currentMessage.edit(embeds[index]).then(m1 => {
-                currentMessage.clearReactions().then(m2 => {
-                  currentMessage.react('◀️').then(m3 => {
-                    currentMessage.react('▶️').then(m4 => {
-                      currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                        onReact(collected);
-                      });
-                    });
-                  });
-                });
-              });
-            }
-            else {
-              if (index != oldIndex) {
-                currentMessage.edit(embeds[index]).then(m1 => {
-                  currentMessage.clearReactions().then(m2 => {
-                    currentMessage.react('◀️').then(m3 => {
-                      currentMessage.react('▶️').then(m4 => {
-                        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                          onReact(collected);
-                        });
-                      });
-                    });
-                  });
-                });
-              }
-              else {
-                currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                  onReact(collected);
-                });
-              }
-            }
-          });
-        }
-      }
-    } else {
-      if (index < embeds.length - 1) {
-        index = index + 1;
-      }
-      else {
-        if (generalBrowsing) {
-            newReviewsPromise = true;
-            data.paginateReview(false, previousDate, response => {
-            if (response.length > 0) {
-              nextDate = response[0]['date'];
-              previousDate = response[response.length - 1]['date'];
-              embeds = createEmbeds(response);
-              index = 0;
-              currentMessage.edit(embeds[index]).then(m1 => {
-                currentMessage.clearReactions().then(m2 => {
-                  currentMessage.react('◀️').then(m3 => {
-                    currentMessage.react('▶️').then(m4 => {
-                      currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                        onReact(collected);
-                      });
-                    });
-                  });
-                });
-              });
-            }
-            else {
-              if (index != oldIndex) {
-                currentMessage.edit(embeds[index]).then(m1 => {
-                  currentMessage.clearReactions().then(m2 => {
-                    currentMessage.react('◀️').then(m3 => {
-                      currentMessage.react('▶️').then(m4 => {
-                        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                          onReact(collected);
-                        });
-                      });
-                    });
-                  });
-                });
-              }
-              else {
-                currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                  onReact(collected);
-                });
-              }
-            }
-          });
-        }
-      }
+async function getNextEmbed(guildid) {
+  return new Promise(async resolve => {
+    const guild = guilds[guildid];
+    var index = guild['index'];
+    if (index < guild['embeds'].length - 1) {
+      index = index + 1;
+      guild['index'] = index;
+      resolve(guild['embeds'][index]);
+      return;
     }
-    if (!newReviewsPromise) {
-      if (index != oldIndex) {
-        currentMessage.edit(embeds[index]).then(m1 => {
-          currentMessage.clearReactions().then(m2 => {
-            currentMessage.react('◀️').then(m3 => {
-              currentMessage.react('▶️').then(m4 => {
-                currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-                  onReact(collected);
-                });
-              });
-            });
-          });
-        });
-      }
-      else {
-        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-          onReact(collected);
-        });
-      }
+    var documents = await model.paginate('review', guild['query'], {name: 'date', before: guild['nextDate']}, false, FETCH_COUNT);
+    if (documents) {
+      const embeds = createEmbeds(documents);
+      guild['embeds'] = embeds;
+      guild['index'] = 0;
+      guild['previousDate'] = documents[0]['date'];
+      guild['nextDate'] = documents[documents.length-1]['date'];
+      resolve(embeds[0]);
     }
-  }
-  else {
-    currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-      onReact(collected);
-    });
-  }
+    else {
+      resolve(false);
+    }
+  });
 }
 
-function createNewMessage(message) {
-  index = 0;
-  if (currentMessage) {
-    currentMessage.clearReactions();
-  }
-  message.channel.send(embeds[0]).then(msg => {
-    currentMessage = msg;
-    currentMessage.react('◀️').then(msg1 => {
-      currentMessage.react('▶️').then(msg2 => {
-        currentMessage.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
-          onReact(collected);
+
+function createNewMessage(channel, guildid, embed) {
+  channel.send(embed).then(msg => {
+    guilds[guildid]['message'] = msg;
+    setupReactions(guildid, MODE.NEW);
+  });
+  guilds[guildid]['timeout'] = setTimeout(() => {
+    cleanOld(guildid);
+  }, 1000 * 60 * 5);
+}
+
+function setupReactions(guildid, mode) {
+  const message = guilds[guildid]['message'];
+  if (mode == MODE.NEW) {
+    message.react('◀️').then(msg1 => {
+      message.react('▶️').then(msg2 => {
+        message.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+          onReact(collected, guildid);
         });
       });
     });
-  });
+  }
+  else if (mode == MODE.CHANGE) {
+    message.reactions.removeAll().then(m2 => {
+      message.react('◀️').then(m3 => {
+        message.react('▶️').then(m4 => {
+          message.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+            onReact(collected, guildid);
+          });
+        });
+      });
+    });
+  }
+  else if (mode == MODE.RESET){
+    message.awaitReactions(filter, {max: 1, time:20000}).then(collected => {
+      onReact(collected, guildid);
+    });
+  }
+}
+
+function cleanOld(guildid) {
+  if (guildid in guilds) {
+    delete guilds[guildid];
+  }
 }
 
 function constructName(args) {

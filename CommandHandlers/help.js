@@ -1,54 +1,22 @@
-const util = require('../util/util.js');
+const cmds = {play: 'play a youtube video or a myinstant link\nFORMAT 1: play [youtubevidename]\nFORMAT 2: play mi [linktomyinstantmp3]',
+              skip: 'skip a song playing',
+              theme: 'Set a theme such that when you join a channel, it plays (You may add up to 3 themes, it will play one on each channel join in order)\nFORMAT: theme [linktomyinstantmp3]',
+              untheme: 'Unset a specifc theme or all themes.\nFORMAT 1: untheme -- unsets all themes\nFORMAT 2: untheme [linktomyinstantmp3] -- unsets a specific theme',
+              review: 'Review or browse reviews about movies, animes, series and games.\n FORMAT 1: review [anime,game,movie,series] [NameOfItemWithSpaces] -- Next message you type after this command will be saved as your review\n FORMAT 2: review find [optionalkeywords] -- Browse latest reviews or reviews containing keywords\n FORMAT 3: review remove [nameofrevieweditem] -- Remove your review about this item',
+              clean: 'Clean all bot and user messages containing any bot commands in the last 100 messages',
+              map: 'Map a myinstant link to an alias then you can play it using [play (alias)]\nFORMAT: map [linktomyinstantmp3] [alias]',
+              unmap: 'Unmaps a specific alias\nFORMAT: unmap [alias] -- Unmaps a specifc alias'};
 
-module.exports.prefix = false;
-
-module.exports.help = (args, channel) => {
+module.exports.onMessage = (message, args) => {
   if (args.length == 1) {
-    channel.send(prefix('A completely unreliable bot:\nCommands Available: !play - !stop - !skip - !resume - !seek - !volume - !theme - !untheme - !prefix'));
+    message.channel.send('A completely unreliable bot:\nCommands Available: play - skip - theme - untheme - review - clean - map - unmap');
   }
-  else if (args.length == 2 && validCommand(args[1].toLowerCase())) {
-    const cmd = args[1].toLowerCase();
-    if(cmd == 'play') {
-      channel.send(prefix('Plays a video from youtube as audio. Selects the first relevant video as specified by the argument\nFormat: !play [video title]'));
-    }
-    else if(cmd == 'stop') {
-      channel.send('Pauses the track currently being played but does not skip it.');
-    }
-    else if(cmd == 'skip') {
-      channel.send('Skips the current track and plays the next one in the queue.');
-    }
-    else if(cmd == 'resume') {
-      channel.send('Resumes the paused track by the command !stop.');
-    }
-    else if(cmd == 'seek'){
-      channel.send(prefix('Seeks to a specifc time in the track\nFormat: !seek [mm:ss] mm=minutes, ss=seconds'));
-    }
-    else if(cmd == 'volume') {
-      channel.send(prefix('Sets the volume of the track being played to match the specified argument (Must be between 1~100)\nFormat: !volume [volume]'));
-    }
-    else if(cmd == 'theme') {
-      channel.send(prefix('Sets a theme to yourself (A theme is an audio that plays when you enter a voice channel with a cooldown of 30 minutes)\nIn order to set a theme, you have to call the command !theme twice. Supply the video name argument in the first time and the start/end timestamps in the second time that the command is called.\nFormat:\n!theme [youtube video name]\n!theme [mm:ss] [mm:ss]  mm=minutes, ss=seconds'));
-    }
-    else if(cmd == 'untheme') {
-      channel.send('Removes your theme.');
-    }
-    else if(cmd == 'prefix') {
-      channel.send('Sets the prefix of the bot\'s commands to the supplied argument prefix ( Only the following prefixes are allowed [!, $, &, %] ). ');
-    }
+  else if (args.length == 2 && args[1] in cmds) {
+    message.channel.send(cmds[args[1]]);
   }
   else {
-    channel.send('Something is wrong the format');
+    message.channel.send('Unknown command');
   }
 }
 
-function validCommand(cmd) {
-  const validCommands = ['play', 'stop', 'skip', 'seek', 'volume', 'theme', 'untheme', 'clean', 'resume', 'prefix'];
-  if (validCommands.includes(cmd)) {
-    return true;
-  }
-  return false;
-}
-
-function prefix(str){
-  return util.prefixify(str, module.exports.prefix);
-}
+module.exports.commands = ['help'];

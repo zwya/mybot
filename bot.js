@@ -5,21 +5,13 @@
 //npm install --save return-deep-diff
 //npm install --save chalk
 
+const ENVIRON = 'DEV';
 const Discord = require('discord.js');
 var client;
-const promiseTimeout = require('promise-timeout');
-const music = require('./CommandHandlers/music.js');
-const theme = require('./CommandHandlers/theme.js');
-const help = require('./CommandHandlers/help.js');
-const movie = require('./CommandHandlers/movie.js');
-const review = require('./CommandHandlers/review.js');
-const memes = require('./CommandHandlers/memes.js');
-const data = require('./data.js');
+const settings = require('./settings.json');
+const handler = require('./CommandHandlers/handler.js');
+const db = require('./db/db.js');
 const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
-
-var prefix = "!"
-var prefixSet = false;
-var interceptMessageQueue = [];
 
 function discordClientInit() {
   client = new Discord.Client({
@@ -27,9 +19,7 @@ function discordClientInit() {
   });
   client.on('ready', () => {
     console.log('I\'m Online');
-    movie.init(client.user.id);
-    review.init(client.user.id);
-    memes.init(client);
+    handler.init({botid: client.user.id, channels: client.channels});
   });
 
   client.on('disconnect', () => {
@@ -41,93 +31,9 @@ function discordClientInit() {
   });
 
   client.on('message', message => {
-    if (!prefixSet && data.serverData[message.guild.id]) {
-      prefix = data.serverData[message.guild.id].prefix;
-      theme.prefix = data.serverData[message.guild.id].prefix;
-      help.prefix = data.serverData[message.guild.id].prefix;
-      prefixSet = true;
-    }
+    handler.onMessage(message);
 
-    if (interceptMessageQueue.length > 0) {
-      for (var i=0;i<interceptMessageQueue.length;i++) {
-        if (message.member.id == interceptMessageQueue[i]['userid']) {
-          interceptMessageQueue[i]['call']({
-            message: message,
-            category: interceptMessageQueue[i]['data']['category'],
-            callback: interceptMessageQueue[i]['data']['callback'],
-            name: interceptMessageQueue[i]['data']['name'],
-            keywords: interceptMessageQueue[i]['data']['keywords']
-          });
-          interceptMessageQueue.splice(i, 1);
-          break;
-        }
-      }
-    }
-    //console.log(message.content[message.content.indexOf('5') + 1]);
-    if (!message.content.startsWith(prefix)) return;
-    //if(message.author === client.user) return; if the bot is the one who's sending this message
-    if (message.author.bot) return; //if the message author is the bot
-    var args = message.content.split(' ');
-    console.log(args);
-    if (args[0].toLowerCase() === prefix + 'play') {
-      var vidName = args[1];
-      for (var i = 2; i < args.length; i++) {
-        vidName = vidName + ' ' + args[i];
-      }
-      var adjustedArguments = [args[0], vidName]
-      music.play(message.member, adjustedArguments, false, result => {
-        message.channel.send(result.message);
-      });
-    } else if (args[0].toLowerCase() === prefix + 'seek') {
-      music.seek(args, message.member.voiceChannel, result => {
-        if (result.error) {
-          message.channel.send(result.message);
-        }
-      });
-    } else if (args[0].toLowerCase() === prefix + 'skip') {
-      music.skip(message.member.voiceChannel, result => {
-        message.channel.send(result.message);
-      });
-    } else if (args[0].toLowerCase() === prefix + 'stop') {
-      music.stop(message.member.voiceChannel, result => {
-        if (result.error) {
-          message.channel.send(result.message);
-        }
-      });
-    } else if (args[0].toLowerCase() === prefix + 'resume') {
-      music.resume(message.member.voiceChannel, result => {
-        if (result.error) {
-          message.channel.send(result.message);
-        }
-      });
-    } else if (args[0].toLowerCase() === prefix + 'volume') {
-      music.volume(args, message.member.voiceChannel, result => {
-        message.channel.send(result.message);
-      });
-    }
-    else if (args[0].toLowerCase() === prefix + 'begone') {
-         client.destroy().then(() => {
-           discordClientInit();
-         });
-       }
-    else if (args[0].toLowerCase() === prefix + 'theme') {
-      var vidName = args[1];
-      for (var i = 2; i < args.length; i++) {
-        vidName = vidName + ' ' + args[i];
-      }
-      var adjustedArguments = [args[0], vidName]
-      theme.setTheme(message, adjustedArguments, result => {
-        if(result) {
-          message.channel.send(result.message);
-        }
-      });
-    } else if (args[0].toLowerCase() === prefix + 'untheme') {
-      theme.unsetTheme(message.member);
-      message.channel.send('Theme unset succesfully');
-    } else if (args[0].toLowerCase() === prefix + 'help') {
-      help.help(args, message.channel);
-    }
-    else if (args[0].toLowerCase() === prefix + 'clean') {
+    /*else if (args[0].toLowerCase() === prefix + 'clean') {
       message.channel.fetchMessages({limit: 100}).then(messages => {
         const regex = new RegExp('\\' + prefix + '(play|volume|theme|untheme|stop|skip|seek|play|clean|begone|help|movies|review)', 'g');
         messagesArray = messages.array();
@@ -136,64 +42,7 @@ function discordClientInit() {
           return result && result.length > 0 || message.author.id == client.user.id;
         }).deleteAll();
       });
-    } else if (args[0].toLowerCase() === prefix + 'prefix') {
-      if (message.guild.available) {
-        if (args.length != 2) {
-          message.channel.send('You must supply only one argument.');
-          return;
-        }
-        if (args[1].length != 1) {
-          message.channel.send('The prefix must be only one character.');
-          return;
-        }
-        const allowedPrefixes = ['!', '$', '%', '&'];
-        if (!allowedPrefixes.includes(args[1])) {
-          message.channel.send('Only the following prefixes are allowed: [!, $, %, &].');
-          return;
-        }
-        if (data.serverData[message.guild.id]) {
-          const server = {
-            prefix: args[1]
-          }
-          data.serverData[message.guild.id].prefix = args[1];
-          data.updateServer(message.guild.id, server);
-        }
-        else {
-          const server = {
-            guildid: message.guild.id,
-            prefix: args[1]
-          }
-          data.serverData[message.guild.id] = {};
-          data.serverData[message.guild.id].prefix = args[1];
-          data.createServer(server);
-        }
-        message.channel.send('Always make sure to clean before setting a new prefix.\nPrefix set as: ' + args[1]);
-        prefix = args[1];
-        prefixSet = false;
-      }
-      else {
-        message.channel.send('Can\' fetch server data, something is wrong with discord.');
-      }
-    }
-    else if (args[0].toLowerCase() === prefix + 'movies') {
-      movie.sendEmbed(message);
-    }
-    else if (args[0].toLowerCase() === prefix + 'review') {
-      review.handleMessage(message, args, response => {
-        if (response['error']) {
-          message.channel.send(response['error']);
-        }
-        if (response['message']) {
-          message.channel.send(response['message']);
-        }
-        if (response['call']) {
-          interceptMessageQueue.push({call: response['call'], data: response['data'], userid: message.member.id});
-        }
-      });
-    }
-    else if (args[0].toLowerCase() == prefix + 'setmemechn') {
-      memes.setChannel(client, args[1]);
-    }
+    }*/
     //message.channel.send(text);
     //message.reply('pong'); replies to a message from a specifc user with mention
     //message.createdTimestamp time message created
@@ -290,31 +139,33 @@ function discordClientInit() {
 
   });
 
-  client.on('voiceStateUpdate', (oldMember, newMember) => {
-    var newUserChannel = newMember.voiceChannel
-    var oldUserChannel = oldMember.voiceChannel
+  client.on('voiceStateUpdate', (oldState, newState) => {
+    var newUserChannel = newState.channel
+    var oldUserChannel = oldState.channel
 
+    if (settings['themes'] && oldUserChannel === null && newUserChannel !== null) {
+      handler.onUserVoice(newState.member);
 
-    if (oldUserChannel === undefined && newUserChannel !== undefined) {
-      theme.onUserLogin(newMember);
-
-    } else if (newUserChannel === undefined) {
+    } else if (newUserChannel === null) {
 
       // User leaves a voice channel
 
     }
   });
-  client.login(process.env.BOT_TOKEN);
+  if (ENVIRON == 'PROD') {
+    client.login(process.env.BOT_TOKEN);
+  }
+  else {
+    client.login(settings['token']);
+  }
+  init();
 }
 
 function init() {
-  music.init();
-  data.init();
-  prefixSet = false;
+  db.init();
 }
 //message.channel.fetchMessages((limit: intnum)).then(messages =>{ messages.channel.bulkDelete(messages); });
 //client.login(settings.token);
 //guild.addRole((name: 'str', color: )).catch(error => {})
 //guild.member(message.mention.users.first()).addRole('roleid').catch(error => {});
-init();
 discordClientInit();

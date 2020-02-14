@@ -1,145 +1,158 @@
 const music = require('./music.js');
-const util = require('../util/util.js');
-var data = require('../data.js');
+const model = require('../db/model.js');
+const urlExists = require('url-exists');
+const LRU = require('lru-cache');
+var cache = false;
+const cacheSize = 200;
 
-
-var pendingRequests = [];
-module.exports.prefix = false;
-
-module.exports.setTheme = (message, args, callback) => {
-  if (pendingRequests.length > 0 && pendingRequests.some(el => el.memberid == message.member.id)) {
-    var index = -1;
-    for (var i = 0; i < pendingRequests.length; i++) {
-      if (pendingRequests[i].memberid == message.member.id) {
-        index = i;
-        break;
-      }
-    }
-    const req = pendingRequests.splice(index, 1)[0];
-    data.getYtVideoInfo(req.args, function(info) {
-      if (info) {
-        var memberId = message.member.id;
-        const regex = /\d+:\d+/g;
-        const result = args[1].match(regex);
-        if (result && result.length == 2) {
-          startTime = result[0].split(":");
-          endTime = result[1].split(":");
-          if (Number(startTime[0]) >= 0 && Number(startTime[1]) >= 0 && Number(endTime[0]) >= 0 && Number(endTime[1]) >= 0 && (Number(endTime[0]) * 60 + Number(endTime[1]) <= info.length_seconds)) {
-            if (data.userData[memberId]) {
-              data.userData[memberId].theme = info.video_url;
-              data.userData[memberId].startTime = result[0];
-              data.userData[memberId].endTime = result[1];
-              data.updateUser(memberId, {
-                theme: info.video_url,
-                startTime: result[0],
-                endTime: result[1]
-              });
-            } else {
-              data.userData[memberId] = {};
-              data.userData[memberId].theme = info.video_url;
-              data.userData[memberId].startTime = result[0];
-              data.userData[memberId].endTime = result[1];
-              data.createUser({
-                userid: memberId,
-                theme: info.video_url,
-                startTime: result[0],
-                endTime: result[1]
-              });
+module.exports.onMessage = async (message, args) => {
+  if (args[0] == 'theme') {
+    if (args[1]) {
+      if (args[1].startsWith('https://www.myinstants.com/media/sounds/')) {
+        urlExists(args[1], async (err, exists) => {
+          if (exists) {
+            var userid = message.author.id;
+            var user = await model.findOne('user', {userid: userid}, {});
+            if (user) {
+              if (user['theme'].length < 3) {
+                const themes = user['theme'];
+                themes.push(args[1]);
+                var result = await model.updateOne('user', userid, {theme: themes});
+                if (result) {
+                  message.channel.send('Theme set');
+                }
+                else {
+                  message.channel.send('An error happened while updating your theme in the database, consult a dev');
+                }
+              }
+              else {
+                message.channel.send('You cannot have more than 3 themes');
+              }
             }
-            callback({
-              message: info.title + ' set as your theme.'
-            });
-          } else {
-            callback({
-              message: 'Something is wrong with the format',
-              error: '6'
-            });
+            else {
+              var result = await model.insertOne('user', {userid: userid, theme: [args[1]]});
+              if (result) {
+                message.channel.send('Theme set');
+              }
+              else {
+                message.channel.send('An error happened while saving your theme in the database, consult a dev');
+              }
+            }
           }
-        }
-      } else {
-        callback({
-          message: 'An error happened, call a developer.',
-          error: '2'
+          else {
+            message.channel.send('Link is dead');
+          }
         });
       }
-    });
-  } else if (args[1]) {
-    pendingRequests.push({
-      memberid: message.member.id,
-      args: args
-    });
-    callback({
-      message: prefix('Please type the timestamp in the following format:\n!theme mm:ss mm:ss where the first timestamp is the start and the second one is the end', module.exports.prefix)
-    });
-    setTimeout(function() {
-      if (pendingRequests.length > 0 && pendingRequests.some(el => el.memberid == message.member.id)) {
-        var index = -1;
-        for (var i = 0; i < pendingRequests.length; i++) {
-          if (pendingRequests[i].memberid == message.member.id) {
-            index = i;
-            break;
+      else {
+        message.channel.send('Not a supported link');
+      }
+    }
+    else {
+      message.channel.send('No link supplied');
+    }
+  } else if (args[0] == 'untheme') {
+    if (args[1]) {
+      if (args[1].startsWith('https://www.myinstants.com/media/sounds/')) {
+        var user = await model.findOne('user', {userid: message.author.id}, {});
+        if (user) {
+          const themes = user['theme'];
+          var foundIndex = false;
+          for (var i=0;i<themes.length;i++) {
+            if (themes[i] == args[1]) {
+              foundIndex = i;
+              break;
+            }
+          }
+          if (foundIndex == false) {
+            themes.splice(foundIndex, 1);
+            var result = await model.updateOne('user', message.author.id, {theme: themes});
+            if (result) {
+              message.channel.send('Theme deleted succesfully');
+            }
+            else {
+              message.channel.send('An error happened while updating your theme in the database, consult a dev');
+            }
+          }
+          else {
+            message.channel.send('You don\'t have this theme set');
           }
         }
-        pendingRequests.splice(index, 1);
+        else {
+          message.channel.send('An error happened while updating your theme in the database, consult a dev or you don\'t have any themes');
+        }
       }
-    }, 1000 * 60 * 5);
-  } else {
-    callback({
-      message: 'An error happened, call a developer.',
-      error: '2'
-    });
-  }
-}
-
-module.exports.unsetTheme = (member) => {
-  if (data.userData[member.id]) {
-    delete data.userData[member.id];
-    data.deleteUser(member.id);
-  }
-}
-
-module.exports.onUserLogin = (member) => {
-  if (data.userData[member.id]) {
-    rightNow = new Date(Date.now());
-    if (data.userData[member.id].lastplayed) {
-      lastPlayed = new Date(data.userData[member.id].lastplayed);
-      var differenceInHours = Math.floor((rightNow - lastPlayed) / (1000 * 60));
-      console.log(differenceInHours);
-      if (differenceInHours >= 30) {
-        args = [];
-        args.push('!play');
-        args.push(data.userData[member.id].theme);
-        const startTime = data.userData[member.id].startTime.split(":");
-        const endTime = data.userData[member.id].endTime.split(":");
-        endTimeSec = Number(endTime[0]) * 60 + Number(endTime[1]);
-        startTimeSec = Number(startTime[0]) * 60 + Number(startTime[1]);
-        music.playTheme(member, args, {
-          seek: startTimeSec
-        }, endTimeSec - startTimeSec);
-        data.userData[member.id].lastplayed = rightNow.toLocaleString();
-        data.updateUser(member.id, {
-          lastplayed: data.userData[member.id].lastplayed
-        });
+      else {
+        message.channel.send('Not a supported link');
       }
-    } else {
-      args = [];
-      args.push('!play');
-      args.push(data.userData[member.id].theme);
-      const startTime = data.userData[member.id].startTime.split(":");
-      const endTime = data.userData[member.id].endTime.split(":");
-      endTimeSec = Number(endTime[0]) * 60 + Number(endTime[1]);
-      startTimeSec = Number(startTime[0]) * 60 + Number(startTime[1]);
-      music.playTheme(member, args, {
-        seek: startTimeSec
-      }, endTimeSec - startTimeSec);
-      data.userData[member.id].lastplayed = rightNow.toLocaleString();
-      data.updateUser(member.id, {
-        lastplayed: data.userData[member.id].lastplayed
-      });
+    }
+    else {
+      var result = await model.deleteOne('user', message.author.id, result);
+      message.channel.send('Deleted all themes');
     }
   }
 }
 
-function prefix(str){
-  return util.prefixify(str, module.exports.prefix);
+module.exports.commands = ['theme', 'untheme'];
+
+module.exports.onUserVoice = async (member) => {
+  var data = cache.get(member.id);
+  if (data) {
+    var lastPlayed = false;
+    var minuteDiff = false;
+    if ('lastPlayed' in result) {
+      lastPlayed = new Date(data['lastplayed']);
+      minuteDiff = Math.floor((new Date() - lastPlayed) / (1000 * 60));
+    }
+    if ((minuteDiff && minuteDiff >= 30) || !minuteDiff) {
+      var index = 0;
+      if ('lastplayedindex' in data) {
+        index = data['lastplayedindex'] + 1;
+      }
+      if (index == data['theme'].length) {
+        index = 0;
+      }
+      music.playTheme(data['theme'][index], member.guild.id, member.voice.channel);
+      data['lastplayed'] = new Date();
+      data['lastplayedindex'] = index;
+      cache.set(member.id, data);
+      await model.updateOne('user', member.id, {lastplayed: data['lastplayed'], lastplayedindex: index});
+      if(!result) {
+        console.log('An error happened in theme');
+      }
+    }
+  }
+  else {
+    var user = await model.findOne('user', {userid: member.id}, {});
+    if (user) {
+      var data = user;
+      var lastPlayed = false;
+      var minuteDiff = false;
+      if ('lastPlayed' in user) {
+        lastPlayed = new Date(data['lastplayed']);
+        minuteDiff = Math.floor((new Date() - lastPlayed) / (1000 * 60));
+      }
+      if ((minuteDiff && minuteDiff >= 30) || !minuteDiff) {
+        var index = 0;
+        if ('lastplayedindex' in data) {
+          index = data['lastplayedindex'] + 1;
+        }
+        if (index == data['theme'].length) {
+          index = 0;
+        }
+        music.playTheme(data['theme'][index], member.guild.id, member.voice.channel);
+        data['lastplayed'] = new Date();
+        data['lastplayedindex'] = index;
+        cache.set(member.id, data);
+        var result = await model.updateOne('user', member.id, {lastplayed: data['lastplayed'], lastplayedindex: index});
+        if(!result) {
+          console.log('An error happened in theme');
+        }
+      }
+    }
+  }
+}
+
+module.exports.init = () => {
+  cache = new LRU(cacheSize);
 }
