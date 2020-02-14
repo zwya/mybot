@@ -100,7 +100,7 @@ module.exports.onUserVoice = async (member) => {
   if (data) {
     var lastPlayed = false;
     var minuteDiff = false;
-    if ('lastPlayed' in result) {
+    if ('lastPlayed' in data) {
       lastPlayed = new Date(data['lastplayed']);
       minuteDiff = Math.floor((new Date() - lastPlayed) / (1000 * 60));
     }
