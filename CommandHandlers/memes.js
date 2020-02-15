@@ -32,7 +32,7 @@ module.exports.init = async (data) => {
   if (documents.length > 0) {
     for (const document of documents) {
       if (document['memeChannel']) {
-        guilds[guilid] = {timeout: false};
+        guilds[guildid] = false;
         sendMeme(document['guildid']);
       }
     }
@@ -62,12 +62,19 @@ function getAGoodMeme() {
 }
 
 async function setPostMemes(postMemes, guildid, channel) {
+  if
   var guild = await guildModel.getGuild(guildid);
   guild['shouldMeme'] = postMemes;
   var result = await guildModel.updateGuild(guild);
   if(result) {
     channel.send('Bot setting updated succesfully');
     if (guild['memeChannel']) {
+      if (!(guildid in guilds)) {
+        guilds[guildid] = false;
+      }
+      if (!postMemes) {
+        clearGuild();
+      }
       sendMeme(guildid);
     }
   }
@@ -85,6 +92,12 @@ async function setChannel(channelid, guildid, channel) {
     if(result) {
       channel.send('Bot setting updated succesfully');
       if (guild['shouldMeme']) {
+        if (!(guildid in guilds)) {
+          guilds[guildid] = false;
+        }
+        if (!postMemes) {
+          clearGuild();
+        }
         sendMeme(guildid);
       }
     }
@@ -98,9 +111,7 @@ async function setChannel(channelid, guildid, channel) {
 }
 
 async function sendMeme(guildid) {
-  if ('timeout' in guilds[guildid]) {
-    clearTimeout(guilds[guildid]['timeout']);
-  }
+  clearGuild();
   var guild = await guildModel.getGuild(guildid);
   const channel = await channels.fetch(guild['memeChannel']);
   if (guild && guild['shouldMeme'] && guild['memeChannel'] && channel) {
@@ -109,8 +120,15 @@ async function sendMeme(guildid) {
         channel.send(meme['title'] + '\n' + meme['url']);
       }
     });
-    guilds[guildid]['timeout'] = setTimeout(() => {
+    guilds[guildid] = setTimeout(() => {
       sendMeme(guildid);
     }, hrsBetweenPost * 60 * 60 * 1000);
+  }
+}
+
+function clearGuild(guildid) {
+  if (guildid in guilds) {
+    clearTimeout(guilds[guildid]);
+    guilds[guildid] = false;
   }
 }
