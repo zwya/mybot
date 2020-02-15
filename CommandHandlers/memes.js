@@ -1,5 +1,6 @@
 const outside = require('../db/outside.js');
 const model = require('../db/model.js');
+const guildModel = require('../db/guild.js');
 var guilds = {};
 var channels = false;
 const hrsBetweenPost = 4;
@@ -60,130 +61,56 @@ function getAGoodMeme() {
   });
 }
 
-function setPostMemes(postMemes, guildid, channel) {
-  getGuild(guildid).then(guild => {
-    var gld = guild;
-    var update = false;
-    if (!gld) {
-      update = true;
-      gld = {shouldMeme: false, memeChannel: false};
+async function setPostMemes(postMemes, guildid, channel) {
+  var guild = await guildModel.getGuild(guildid);
+  guild['shouldMeme'] = postMemes;
+  var result = await guildModel.updateGuild(guild);
+  if(result) {
+    channel.send('Bot setting updated succesfully');
+    if (guild['memeChannel']) {
+      sendMeme(guildid);
     }
-    if (postMemes != gld['shouldMeme']) {
-      update = true;
-      gld['shouldMeme'] = postMemes;
-    }
-    if (update) {
-      updateGuild(gld, guildid).then(result => {
-        if(result) {
-          channel.send('Bot setting updated succesfully');
-          if (gld['memeChannel']) {
-            sendMeme(guildid)
-          }
-        }
-        else {
-          channel.send('An error happened while updating, consult a dev');
-        }
-      });
-    }
-    else {
-      channel.send('Bot setting updated succesfully');
-    }
-  });
+  }
+  else {
+    channel.send('An error happened while updating, consult a dev');
+  }
 }
 
 async function setChannel(channelid, guildid, channel) {
   const newChannel = await channels.fetch(channelid);
   if (newChannel && newChannel.type == 'text') {
-    getGuild(guildid).then(guild => {
-      var gld = guild;
-      var update = false;
-      if (!gld) {
-        update = true;
-        gld = {shouldMeme: false, memeChannel: false};
+    var guild = await guildModel.getGuild(guildid);
+    guild['memeChannel'] = channelid;
+    var result = await guildModel.updateGuild(guild);
+    if(result) {
+      channel.send('Bot setting updated succesfully');
+      if (guild['shouldMeme']) {
+        sendMeme(guildid);
       }
-      if (channelid != gld['memeChannel']) {
-        update = true;
-        gld['memeChannel'] = channelid;
-      }
-      if (update) {
-        updateGuild(gld, guildid).then(result => {
-          if(result) {
-            channel.send('Bot setting updated succesfully');
-            if (gld['shouldMeme']) {
-              sendMeme(guildid)
-            }
-          }
-          else {
-            channel.send('An error happened while updating, consult a dev');
-          }
-        });
-      }
-      else {
-        channel.send('Bot setting updated succesfully');
-      }
-    });
+    }
+    else {
+      channel.send('An error happened while updating, consult a dev');
+    }
   }
   else {
     channel.send('Channel doesn\'t exist or is not a text channel');
   }
 }
 
-function getGuild(guildid) {
-  return new Promise(async resolve => {
-    if (guildid in guilds) {
-      resolve(guilds[guildid]);
-    }
-    else {
-      var result = await model.findOne('serverdata', {guildid: guildid}, {shouldMeme: 1, memeChannel: 1});
-      if (result) {
-        var cpy = result;
-        if (!('shouldMeme' in cpy)) {
-          cpy['shouldMeme'] = false;
-        }
-        if (!('memeChannel' in cpy)) {
-          cpy['memeChannel'] = false;
-        }
-        resolve(result);
-      }
-      else {
-        var result = await model.insertOne('serverdata', {guildid: guildid});
-        if (!result) {
-          console.log('An error happened in insertion');
-        }
-        resolve(false);
-      }
-    }
-  });
-}
-
-async function updateGuild(data, guildid) {
-  return new Promise(resolve => {
-    guilds[guildid] = data;
-    var result = model.updateOne('serverdata', guildid, data);
-    if (result) {
-      resolve(true);
-    }
-    else {
-      resolve(false);
-    }
-  });
-}
-
-function sendMeme(guildid) {
+async function sendMeme(guildid) {
   if ('timeout' in guilds[guildid]) {
     clearTimeout(guilds[guildid]['timeout']);
   }
-  getGuild(guildid).then(async guild => {
-    const channel = await channels.fetch(guild['memeChannel']);
-    if (guild && guild['shouldMeme'] && guild['memeChannel'] && channel) {
-      getAGoodMeme().then(meme => {
-        if (meme) {
-          channel.send(meme['title'] + '\n' + meme['url']);
-        }
-      });
-      guild['timeout'] = setTimeout(() => {
-        sendMeme(guildid);
-      }, hrsBetweenPost * 60 * 60 * 1000);
-    }
-  });
+  var guild = await guildModel.getGuild(guildid);
+  const channel = await channels.fetch(guild['memeChannel']);
+  if (guild && guild['shouldMeme'] && guild['memeChannel'] && channel) {
+    getAGoodMeme().then(meme => {
+      if (meme) {
+        channel.send(meme['title'] + '\n' + meme['url']);
+      }
+    });
+    guild['timeout'] = setTimeout(() => {
+      sendMeme(guildid);
+    }, hrsBetweenPost * 60 * 60 * 1000);
+  }
 }

@@ -1,14 +1,11 @@
 const model = require('../db/model.js');
+const guildModel = require('../db/guild.js');
 const fs = require('fs');
 const allCommands = {};
-var LRU = require('lru-cache');
-var LRUPrefix = false;
-const LRUSize = 50;
 const interceptQueue = {};
 const userVoiceIntercept = [];
 
 module.exports.init = (data) => {
-  LRUPrefix = new LRU(LRUSize);
   const commandFiles = fs.readdirSync('./CommandHandlers').filter(file => file.endsWith('.js') && !file.startsWith('handler'));
   for (const file of commandFiles) {
     const package = require(`./${file}`);
@@ -25,9 +22,6 @@ module.exports.init = (data) => {
     }
     if ('onUserVoice' in package) {
       userVoiceIntercept.push(package.onUserVoice);
-    }
-    if ('prefixCache' in package) {
-      package.prefixCache = LRUPrefix;
     }
   }
 }
@@ -66,20 +60,7 @@ module.exports.onUserVoice = (member) => {
 
 function guildPrefix(guildid, callback) {
   return new Promise(async resolve => {
-    const prefix = LRUPrefix.get(guildid);
-    if (prefix) {
-      resolve(prefix);
-    }
-    else {
-      var server = await model.findOne('serverdata', {guildid: guildid}, {prefix: 1});
-      if (server) {
-        LRUPrefix.set(guildid, server['prefix']);
-        resolve(server['prefix']);
-      }
-      else {
-        LRUPrefix.set(guildid, '!');
-        resolve('!');
-      }
-    }
+    var guild = await guildModel.getGuild(guildid);
+    resolve(guild['prefix']);
   });
 }

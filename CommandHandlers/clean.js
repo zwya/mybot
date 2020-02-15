@@ -1,10 +1,12 @@
+const guildModel = require('../db/guild.js');
+
 var botid = false;
 
-module.exports.onMessage = (message , args) => {
+module.exports.onMessage = async (message , args) => {
   if (args[0] == 'clean') {
-    const prefix = module.exports.prefixCache.get(message.member.guild.id);
+    const guild = await guildModel.getGuild(message.member.guild.id);
     message.channel.messages.fetch({limit: 100}).then(messages => {
-      const regex = new RegExp('\\' + prefix + '(play|theme|untheme|skip|clean|help|review|map|unmap|setmeme|setmemechannel)', 'g');
+      const regex = new RegExp('\\' + guild['prefix'] + '(play|theme|untheme|skip|clean|help|review|map|unmap|setmeme|setmemechannel)', 'g');
       messagesArray = messages.array();
       message.channel.bulkDelete(messages.filter(message => {
         const result = message.content.match(regex);
@@ -19,4 +21,3 @@ module.exports.init = (data) => {
 }
 
 module.exports.commands = ['clean'];
-module.exports.prefixCache = false;
