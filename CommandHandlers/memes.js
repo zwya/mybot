@@ -31,8 +31,8 @@ module.exports.init = async (data) => {
   var documents = await model.find('serverdata', {shouldMeme: true}, {shouldMeme: 1, guildid: 1, memeChannel: 1});
   if (documents.length > 0) {
     for (const document of documents) {
-      guilds[document['guildid']] = {shouldMeme: document['shouldMeme'], memeChannel: document['memeChannel']};
       if (document['memeChannel']) {
+        guilds[guilid] = {timeout: false};
         sendMeme(document['guildid']);
       }
     }
@@ -109,7 +109,7 @@ async function sendMeme(guildid) {
         channel.send(meme['title'] + '\n' + meme['url']);
       }
     });
-    guild['timeout'] = setTimeout(() => {
+    guilds[guildid]['timeout'] = setTimeout(() => {
       sendMeme(guildid);
     }, hrsBetweenPost * 60 * 60 * 1000);
   }
