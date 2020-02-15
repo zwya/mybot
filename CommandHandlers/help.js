@@ -11,7 +11,7 @@ const cmds = {play: 'Play a youtube video or a myinstant link\nFORMAT 1: play [y
 
 module.exports.onMessage = (message, args) => {
   if (args.length == 1) {
-    message.channel.send('A completely unreliable bot:\nCommands Available: play - skip - theme - untheme - review - clean - map - unmap');
+    message.channel.send('A completely unreliable bot:\nCommands Available: play - skip - theme - untheme - review - clean - map - unmap - setmeme - setmemechannel');
   }
   else if (args.length == 2 && args[1] in cmds) {
     message.channel.send(cmds[args[1]]);

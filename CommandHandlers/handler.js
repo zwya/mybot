@@ -47,9 +47,6 @@ module.exports.onMessage = async (message) => {
       }
     }
   }
-  else {
-    message.channel.send('First argument empty');
-  }
 }
 
 module.exports.onUserVoice = (member) => {
