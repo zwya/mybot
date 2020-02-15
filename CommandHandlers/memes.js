@@ -32,7 +32,7 @@ module.exports.init = async (data) => {
   if (documents.length > 0) {
     for (const document of documents) {
       if (document['memeChannel']) {
-        guilds[guildid] = false;
+        guilds[document['guildid']] = false;
         sendMeme(document['guildid']);
       }
     }
