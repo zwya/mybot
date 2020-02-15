@@ -62,7 +62,6 @@ function getAGoodMeme() {
 }
 
 async function setPostMemes(postMemes, guildid, channel) {
-  if
   var guild = await guildModel.getGuild(guildid);
   guild['shouldMeme'] = postMemes;
   var result = await guildModel.updateGuild(guild);
