@@ -50,6 +50,7 @@ module.exports.onMessage = async (message) => {
 }
 
 module.exports.onUserVoice = (member) => {
+  if (member.user.bot) return;
   for (const listener of userVoiceIntercept) {
     listener(member);
   }

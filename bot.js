@@ -11,8 +11,6 @@ var client;
 const settings = require('./settings.json');
 const handler = require('./CommandHandlers/handler.js');
 const db = require('./db/db.js');
-const guildModel = require('./db/guild.js');
-const connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
 
 function discordClientInit() {
   client = new Discord.Client({
@@ -20,7 +18,6 @@ function discordClientInit() {
   });
   client.on('ready', () => {
     console.log('I\'m Online');
-    guildModel.init();
     handler.init({botid: client.user.id, channels: client.channels});
   });
 

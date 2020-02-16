@@ -1,5 +1,13 @@
 const fs = require('fs');
 
+module.exports.removeEmpty = (obj) => {
+  Object.keys(obj).forEach(key => {
+    if (obj[key] && typeof obj[key] === 'object') module.exports.removeEmpty(obj[key]);
+    else if (obj[key] === undefined) delete obj[key];
+  });
+  return obj;
+};
+
 module.exports.prefixify = (string, prefix) => {
   return string.replace(new RegExp('!', 'g'), prefix);
 }

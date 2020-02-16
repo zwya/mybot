@@ -2,10 +2,10 @@ const ytdl = require('ytdl-core');
 const urlExists = require('url-exists');
 const outside = require('../db/outside.js');
 const model = require('../db/model.js');
-var LRU = require('lru-cache');
+const guildModel = require('../db/guild.js');
+const perms = require('../util/permissions.js');
 
 var guilds = {};
-var voiceMappings = new LRU(50);
 
 const acceptedPlayArgs = ['myinstants', 'mi'];
 
@@ -35,28 +35,16 @@ module.exports.onMessage = async (message, args) => {
         }
       }
       else {
-        var mapping = voiceMappings.get(guildid);
-        if (!mapping) {
-          var guildData = await model.findOne('serverdata', {guildid: guildid}, {voicemap: 1});
-          if (guildData) {
-            mapping = guildData['voicemap'];
-            voiceMappings.set(guildid, mapping);
+        var guild = await guildModel.getGuild(guildid);
+        if (args[1] in guild['voicemap']) {
+          var link = 'https://www.myinstants.com/media/sounds/' + guild['voicemap'][args[1]];
+          if (guilds[guildid]['playing']) {
+            guilds[guildid]['queue'].push({link: link, type: 'mi'});
           }
-        }
-        if (mapping) {
-          if (args[1] in mapping) {
-            var link = 'https://www.myinstants.com/media/sounds/' + mapping[args[1]];
-            if (guilds[guildid]['playing']) {
-              guilds[guildid]['queue'].push({link: link, type: 'mi'});
-            }
-            else {
-              play(link, guildid, channel, message.channel, 'mi');
-            }
-            return;
+          else {
+            play(link, guildid, channel, message.channel, 'mi');
           }
-        }
-        else {
-          voiceMappings.set(guildid, {});
+          return;
         }
         var videoName = args[1];
         for (var i=2;i<args.length;i++) {
@@ -407,28 +395,14 @@ function checkCorrectLink(defLink, link) {
 }
 
 async function map(guildid, milink, alias, channel) {
-  var mapping = voiceMappings.get(guildid);
-  if (!mapping) {
-    var result = await model.findOne('serverdata', {guildid: guildid}, {voicemap: 1});
-    if (result) {
-      if ('voicemap' in result) {
-        mapping = result['voicemap'];
-      }
-      else {
-        mapping = {};
-      }
-    }
-    else {
-      var result = await model.insertOne('serverdata', {guildid: guildid});
-      mapping = {};
-    }
-  }
-  if (Object.keys(mapping).length < 10) {
+  var guild = await guildModel.getGuild(guildid);
+  const bypass = perms.canByPass(guild['lv'], perms.PERMS.VOICEMAPS);
+  const maxMaps = perms.maxAllowed(guild['lv'], perms.PERMS.VOICEMAPS);
+  if (bypass || Object.keys(guild['voicemap']).length < maxMaps) {
     var result = await checkCorrectLink('https://www.myinstants.com/media/sounds/', milink);
     if (result) {
-      mapping[alias] = milink.split('https://www.myinstants.com/media/sounds/')[1];
-      voiceMappings.set(guildid, mapping);
-      var result = await model.updateOne('serverdata', guildid, {voicemap: mapping});
+      guild['voicemap'][alias] = milink.split('https://www.myinstants.com/media/sounds/')[1];
+      var result = await guildModel.updateGuild(guild);
       if (result) {
         channel.send('Alias set succesfully');
       }
@@ -446,21 +420,10 @@ async function map(guildid, milink, alias, channel) {
 }
 
 async function unmap(guildid, alias, channel) {
-  var mapping = voiceMappings.get(guildid);
-  if (!mapping) {
-    var result = await model.findOne('serverdata', {guildid: guildid}, {voicemap: 1});
-    if (result && 'voicemap' in result) {
-      mapping = result['voicemap'];
-    }
-    else {
-      channel.send('Your guild doesn\'t have any mappings');
-      return;
-    }
-  }
-  if (alias in mapping) {
-    delete mapping[alias];
-    voiceMappings.set(guildid, mapping);
-    var result = await model.updateOne('serverdata', guildid, {voicemap: mapping});
+  var guild = await guildModel.getGuild(guildid);
+  if (alias in guild['voicemap']) {
+    delete guild['voicemap'][alias];
+    var result = await guildModel.updateGuild(guild);
     if (result) {
       channel.send('Alias deleted');
     }
