@@ -17,7 +17,7 @@ module.exports.init = () => {
       console.log(err);
       return;
     }
-    db = client.db('discbot');
+    db = client.db('discordbot');
   });
   userModel.init();
   guildModel.init();
