@@ -91,26 +91,28 @@ module.exports.commands = ['theme', 'untheme'];
 
 module.exports.onUserVoice = async (member) => {
   var user = await userModel.getUser(member.id);
-  var lastPlayed = false;
-  var minuteDiff = false;
-  if (user['lastplayed']) {
-    lastPlayed = new Date(user['lastplayed']);
-    minuteDiff = Math.floor((new Date() - lastPlayed) / (1000 * 60));
-  }
-  if ((minuteDiff && minuteDiff >= 30) || !minuteDiff) {
-    var index = 0;
+  if (user['theme'].length > 0) {
+    var lastPlayed = false;
+    var minuteDiff = false;
     if (user['lastplayed']) {
-      index = user['lastplayedindex'] + 1;
+      lastPlayed = new Date(user['lastplayed']);
+      minuteDiff = Math.floor((new Date() - lastPlayed) / (1000 * 60));
     }
-    if (index == user['theme'].length) {
-      index = 0;
-    }
-    music.playTheme(user['theme'][index], member.guild.id, member.voice.channel);
-    user['lastplayed'] = new Date();
-    user['lastplayedindex'] = index;
-    var result = await userModel.updateUser(user);
-    if(!result) {
-      console.log('An error happened in theme');
+    if ((minuteDiff && minuteDiff >= 30) || !minuteDiff) {
+      var index = 0;
+      if (user['lastplayed']) {
+        index = user['lastplayedindex'] + 1;
+      }
+      if (index == user['theme'].length) {
+        index = 0;
+      }
+      music.playTheme(user['theme'][index], member.guild.id, member.voice.channel);
+      user['lastplayed'] = new Date();
+      user['lastplayedindex'] = index;
+      var result = await userModel.updateUser(user);
+      if(!result) {
+        console.log('An error happened in theme');
+      }
     }
   }
 }
