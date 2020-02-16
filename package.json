@@ -18,6 +18,7 @@
     "deep-diff": "^1.0.2",
     "fs": "0.0.1-security",
     "libsodium-wrappers": "^0.7.6",
+    "deepcopy": "^2.0.0",
     "mongodb": "^3.4.0",
     "nan": "^2.14.0",
     "node-opus": "^0.3.3",
