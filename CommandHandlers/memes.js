@@ -71,10 +71,10 @@ async function setPostMemes(postMemes, guildid, channel) {
       if (!(guildid in guilds)) {
         guilds[guildid] = false;
       }
-      if (!postMemes) {
-        clearGuild();
-      }
       sendMeme(guildid);
+    }
+    else {
+      clearGuild(guildid);
     }
   }
   else {
@@ -94,10 +94,10 @@ async function setChannel(channelid, guildid, channel) {
         if (!(guildid in guilds)) {
           guilds[guildid] = false;
         }
-        if (!postMemes) {
-          clearGuild();
-        }
         sendMeme(guildid);
+      }
+      else {
+        clearGuild(guildid);
       }
     }
     else {
