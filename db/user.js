@@ -60,6 +60,13 @@ module.exports.updateUser = (user) => {
   });
 }
 
+module.exports.getTrackedUsers = () => {
+  return new Promise(async resolve  => {
+    var users = await model.find('user', {tracked: true});
+    resolve(users);
+  });
+}
+
 module.exports.init = () => {
   users = new LRU(CACHE_SIZE);
 }
