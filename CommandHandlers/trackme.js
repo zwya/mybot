@@ -192,30 +192,39 @@ module.exports.onMessage = async (message, args) => {
 }
 
 module.exports.onPresenceUpdate = (oldPresence, newPresence) => {
-  if (oldPresence.userID in tracker.dbUsers) {
+  var id = false;
+  if (oldPresence.userID) {
+    id = oldPresence.userID;
+  }
+  else if (newPresence.userID) {
+    id = newPresence.userID;
+  }
+  if (id) {
+    if (id in tracker.dbUsers) {
 
-    // Handle old presence
-    if (tracker['tracked'][oldPresence.userID]) {
-      var timeSpent = Math.floor((new Date() - tracker['tracked'][oldPresence.userID]['start']) / 1000);
-      var game = tracker['tracked'][oldPresence.userID]['game'];
-      if (timeSpent > 0) {
-        if (game in tracker['dbUsers'][oldPresence.userID]['statistics']) {
-          tracker['dbUsers'][oldPresence.userID]['statistics'][game] += timeSpent;
+      // Handle old presence
+      if (tracker['tracked'][id]) {
+        var timeSpent = Math.floor((new Date() - tracker['tracked'][id]['start']) / 1000);
+        var game = tracker['tracked'][id]['game'];
+        if (timeSpent > 0) {
+          if (game in tracker['dbUsers'][id]['statistics']) {
+            tracker['dbUsers'][id]['statistics'][game] += timeSpent;
+          }
+          else {
+            tracker['dbUsers'][id]['statistics'][game] = timeSpent;
+          }
+          userModel.updateUser(tracker['dbUsers'][id]);
         }
-        else {
-          tracker['dbUsers'][oldPresence.userID]['statistics'][game] = timeSpent;
-        }
-        userModel.updateUser(tracker['dbUsers'][oldPresence.userID]);
+        tracker['tracked'][id] = false;
       }
-      tracker['tracked'][oldPresence.userID] = false;
-    }
 
-    // Handle new presence
-    if (newPresence.activities && newPresence.activities.length != 0 && newPresence.activities[0]['type'] == 'PLAYING') {
-      tracker['tracked'][oldPresence.userID] = {
-        game: newPresence.activities[0]['name'],
-        start: new Date()
-      };
+      // Handle new presence
+      if (newPresence.activities && newPresence.activities.length != 0 && newPresence.activities[0]['type'] == 'PLAYING') {
+        tracker['tracked'][id] = {
+          game: newPresence.activities[0]['name'],
+          start: new Date()
+        };
+      }
     }
   }
 }
