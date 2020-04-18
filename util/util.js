@@ -38,3 +38,7 @@ module.exports.addDiff = (diff, object, doc) => {
   dc[path[end]] = result[path[end]];
   return dc;
 }
+
+module.exports.getRandomInt = (max) => {
+  return Math.floor(Math.random() * Math.floor(max));
+}

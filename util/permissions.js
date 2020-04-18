@@ -42,6 +42,23 @@ module.exports.maxAllowed = (role, permission) => {
   return 0;
 }
 
-module.exports.USER_PERMS = {
-  '299958177989132288': 'creator'
+const USER_PERMS = {
+  '299958177989132288': ['trackself', 'trackothers', 'statself', 'statothers', 'untrackself', 'untrackothers']
+}
+
+const DEFAULT_PERMS = {
+  trackself: 'anyone',
+  statself: 'anyone',
+  statothers: 'anyone',
+  untrackself: 'anyone'
+}
+
+module.exports.HAS_PERMS = (permission, userid) => {
+  if (userid in USER_PERMS && USER_PERMS[userid].includes(permission)) {
+    return true;
+  }
+  if (DEFAULT_PERMS[permission] == 'anyone') {
+    return true;
+  }
+  return false;
 }
