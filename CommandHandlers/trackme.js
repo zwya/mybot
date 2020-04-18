@@ -193,10 +193,10 @@ module.exports.onMessage = async (message, args) => {
 
 module.exports.onPresenceUpdate = (oldPresence, newPresence) => {
   var id = false;
-  if (oldPresence.userID) {
+  if (oldPresence && oldPresence.userID) {
     id = oldPresence.userID;
   }
-  else if (newPresence.userID) {
+  else if (newPresence && newPresence.userID) {
     id = newPresence.userID;
   }
   if (id) {
