@@ -94,19 +94,19 @@ module.exports.onMessage = async (message, args) => {
           errmsg = 'You do not have permissions to view your stats';
         }
       }
-      else if (args.length == 3 && args[1].startsWith('<@!') && args[2].length > 0 && !isNaN(args[2])) {
-        if (perms.HAS_PERMS('statothers', message.member.id)) {
-          var member = message.mentions.members.first();
-          start = parseInt(args[2]) - 1;
-          id = member.id;
-        }
-        else {
-          errmsg = 'You do not have permissions to view other members stats';
-        }
+    }
+    else if (args.length == 3 && args[1].startsWith('<@!') && args[2].length > 0 && !isNaN(args[2])) {
+      if (perms.HAS_PERMS('statothers', message.member.id)) {
+        var member = message.mentions.members.first();
+        start = parseInt(args[2]) - 1;
+        id = member.id;
       }
       else {
-        errmsg = 'Command format incorrect';
+        errmsg = 'You do not have permissions to view other members stats';
       }
+    }
+    else {
+      errmsg = 'Command format incorrect';
     }
 
     if (errmsg) {
@@ -173,7 +173,7 @@ module.exports.onMessage = async (message, args) => {
         if (perms.HAS_PERMS('untrackothers', message.member.id)) {
           var member = message.mentions.members.first();
           if (member.id in dbUsers) {
-            var user = tracker['dbUsers'][member.id];
+            var user = dbUsers[member.id];
             dbUsers = false;
             userModel.updateUser(user);
             delete dbUsers[member.id];
