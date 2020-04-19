@@ -2,13 +2,13 @@ const userModel = require('../db/user.js');
 const perms = require('../util/permissions.js');
 const confirmationSetences = require('../data.json').confirmation;
 const random = require('../util/util.js').getRandomInt;
-
-var tracker = {
-  dbUsers: {},
-  tracked: {}
-};
+const INTERVAL_TIME = 1000 * 60;
+const SAVE_INTERVAL = 30; // In Minutes
+var current_interval = 0;
 var interval = false;
+var clientUsers = false;
 var tracking = false;
+var dbUsers = {};
 
 module.exports.onMessage = async (message, args) => {
   if (args[0] == 'track') {
@@ -45,15 +45,20 @@ module.exports.onMessage = async (message, args) => {
       return;
     }
 
-    if (id && !(id in tracker['dbUsers'])) {
+    if (id && !(id in dbUsers)) {
       var user = await userModel.getUser(id);
       user['tracked'] = true;
       if (!('statistics' in user)) {
         user['statistics'] = {};
       }
       userModel.updateUser(user);
-      tracker['dbUsers'][id] = user;
+      dbUsers[id] = user;
       message.channel.send(confirmationSetences[random(confirmationSetences.length)]);
+      if (!tracking) {
+        interval = setInterval(track, INTERVAL_TIME);
+        tracking = true;
+        current_interval = 0;
+      }
     }
   }
   else if (args[0] == 'stats') {
@@ -109,9 +114,9 @@ module.exports.onMessage = async (message, args) => {
       return;
     }
 
-    if (id in tracker['dbUsers']) {
+    if (id in dbUsers) {
       var sorted = [];
-      for (let [key, value] of Object.entries(tracker['dbUsers'][id]['statistics'])) {
+      for (let [key, value] of Object.entries(dbUsers[id]['statistics'])) {
         sorted.push({game: key, time: value});
       }
       sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0));
@@ -145,12 +150,16 @@ module.exports.onMessage = async (message, args) => {
     if (args.length == 2) {
       if (args[1] == 'me') {
         if (perms.HAS_PERMS('untrackself', message.member.id)) {
-          if (message.member.id in tracker['dbUsers']) {
-            var user = tracker['dbUsers'][message.member.id];
-            user['tracked'] = false;
+          if (message.member.id in dbUsers) {
+            var user = dbUsers[message.member.id];
+            dbUsers = false;
             userModel.updateUser(user);
-            delete tracker['dbUsers'][message.member.id];
+            delete dbUsers[message.member.id];
             message.channel.send('I am no longer watching you');
+            if (tracking && Object.keys(dbUsers).length !== 0) {
+              tracking = false;
+              clearInterval(interval);
+            }
           }
           else {
             errmsg = 'You have not enabled tracking';
@@ -163,12 +172,16 @@ module.exports.onMessage = async (message, args) => {
       else if (args[1].startsWith('<@!')) {
         if (perms.HAS_PERMS('untrackothers', message.member.id)) {
           var member = message.mentions.members.first();
-          if (member.id in tracker['dbUsers']) {
+          if (member.id in dbUsers) {
             var user = tracker['dbUsers'][member.id];
-            user['tracked'] = false;
+            dbUsers = false;
             userModel.updateUser(user);
-            delete tracker['dbUsers'][member.id];
+            delete dbUsers[member.id];
             message.channel.send('I am no longer watching this user');
+            if (tracking && Object.keys(dbUsers).length !== 0) {
+              tracking = false;
+              clearInterval(interval);
+            }
           }
           else {
             errmsg = 'This user has not enabled tracking';
@@ -191,41 +204,26 @@ module.exports.onMessage = async (message, args) => {
   }
 }
 
-module.exports.onPresenceUpdate = (oldPresence, newPresence) => {
-  var id = false;
-  if (oldPresence && oldPresence.userID) {
-    id = oldPresence.userID;
-  }
-  else if (newPresence && newPresence.userID) {
-    id = newPresence.userID;
-  }
-  if (id) {
-    if (id in tracker.dbUsers) {
-
-      // Handle old presence
-      if (tracker['tracked'][id]) {
-        var timeSpent = Math.floor((new Date() - tracker['tracked'][id]['start']) / 1000);
-        var game = tracker['tracked'][id]['game'];
-        if (timeSpent > 0) {
-          if (game in tracker['dbUsers'][id]['statistics']) {
-            tracker['dbUsers'][id]['statistics'][game] += timeSpent;
-          }
-          else {
-            tracker['dbUsers'][id]['statistics'][game] = timeSpent;
-          }
-          userModel.updateUser(tracker['dbUsers'][id]);
+function track() {
+  current_interval+=1;
+  Object.keys(dbUsers).forEach((item, i) => {
+    clientUsers.fetch(item).then(user => {
+      if (user.presence.activities && user.presence.activities.length != 0) {
+        var act = user.presence.activities[0];
+        if (act['name'] in dbUsers[item]['statistics']) {
+          dbUsers[item]['statistics'][act['name']] += 60;
         }
-        tracker['tracked'][id] = false;
+        else {
+          dbUsers[item]['statistics'][act['name']] = 60;
+        }
       }
-
-      // Handle new presence
-      if (newPresence.activities && newPresence.activities.length != 0 && newPresence.activities[0]['type'] == 'PLAYING') {
-        tracker['tracked'][id] = {
-          game: newPresence.activities[0]['name'],
-          start: new Date()
-        };
-      }
+    });
+    if (current_interval % SAVE_INTERVAL == 0){
+      userModel.updateUser(dbUsers[item]);
     }
+  });
+  if (current_interval % SAVE_INTERVAL == 0) {
+    current_interval = 0;
   }
 }
 
@@ -233,8 +231,14 @@ module.exports.init = async (data) => {
   var users = await userModel.getTrackedUsers();
   if (users) {
     for (const user of users) {
-      tracker['dbUsers'][user['userid']] = user;
+      dbUsers[user['userid']] = user;
     }
+  }
+  clientUsers = data['users'];
+  if (Object.keys(dbUsers).length !== 0) {
+    tracking = true;
+    interval = setInterval(track, INTERVAL_TIME);
+    current_interval = 0;
   }
 }
 

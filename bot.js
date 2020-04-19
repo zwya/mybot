@@ -51,10 +51,6 @@ function discordClientInit() {
     //client.user.setStatus('online,idle'); //sets the status of the bo
   });
 
-  client.on('presenceUpdate', (oldPresence, newPresence) => {
-    handler.onPresenceUpdate(oldPresence, newPresence);
-  });
-
   client.on('guildDelete', guild => {
     //on channel leave
   });

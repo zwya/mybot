@@ -4,7 +4,6 @@ const fs = require('fs');
 const allCommands = {};
 const interceptQueue = {};
 const userVoiceIntercept = [];
-const presenceUpdateIntercept = [];
 
 module.exports.init = (data) => {
   const commandFiles = fs.readdirSync('./CommandHandlers').filter(file => file.endsWith('.js') && !file.startsWith('handler'));
@@ -57,12 +56,6 @@ module.exports.onUserVoice = (member) => {
   if (member.user.bot) return;
   for (const listener of userVoiceIntercept) {
     listener(member);
-  }
-}
-
-module.exports.onPresenceUpdate = (oldPresence, newPresence) => {
-  for (const listener of presenceUpdateIntercept) {
-    listener(oldPresence, newPresence);
   }
 }
 
