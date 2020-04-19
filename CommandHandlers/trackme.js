@@ -152,7 +152,6 @@ module.exports.onMessage = async (message, args) => {
         if (perms.HAS_PERMS('untrackself', message.member.id)) {
           if (message.member.id in dbUsers) {
             var user = dbUsers[message.member.id];
-            dbUsers = false;
             userModel.updateUser(user);
             delete dbUsers[message.member.id];
             message.channel.send('I am no longer watching you');
@@ -174,7 +173,6 @@ module.exports.onMessage = async (message, args) => {
           var member = message.mentions.members.first();
           if (member.id in dbUsers) {
             var user = dbUsers[member.id];
-            dbUsers = false;
             userModel.updateUser(user);
             delete dbUsers[member.id];
             message.channel.send('I am no longer watching this user');
