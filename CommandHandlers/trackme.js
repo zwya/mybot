@@ -119,7 +119,7 @@ module.exports.onMessage = async (message, args) => {
       for (let [key, value] of Object.entries(dbUsers[id]['statistics'])) {
         sorted.push({game: key, time: value});
       }
-      sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0));
+      sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0)).reverse();
 
       var text = '';
       for (var i=start * 10;i<(start+1)*10 && i<sorted.length;i++) {
