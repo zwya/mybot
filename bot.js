@@ -18,7 +18,7 @@ function discordClientInit() {
   });
   client.on('ready', () => {
     console.log('I\'m Online');
-    handler.init({botid: client.user.id, channels: client.channels});
+    handler.init({botid: client.user.id, channels: client.channels, users: client.users}});
   });
 
   client.on('disconnect', () => {
