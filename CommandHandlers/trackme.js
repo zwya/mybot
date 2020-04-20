@@ -236,7 +236,7 @@ module.exports.init = async (data) => {
   if (Object.keys(dbUsers).length !== 0) {
     tracking = true;
     interval = setInterval(track, INTERVAL_TIME);
-    current_interval = 0;
+    current_interval = 1;
   }
 }
 
