@@ -21,6 +21,7 @@ module.exports.savejson = (filename, json) => {
 }
 
 module.exports.addDiff = (diff, object, doc) => {
+  var dc = doc;
   var path = diff['path'];
   dc[path[0]] = object[path[0]];
   return dc;
