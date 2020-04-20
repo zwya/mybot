@@ -4,7 +4,7 @@ const confirmationSetences = require('../data.json').confirmation;
 const random = require('../util/util.js').getRandomInt;
 const INTERVAL_TIME = 1000 * 60;
 const SAVE_INTERVAL = 30; // In Minutes
-var current_interval = 0;
+var current_interval = 1;
 var interval = false;
 var clientUsers = false;
 var tracking = false;
@@ -216,12 +216,12 @@ function track() {
         }
       }
     });
-    if (current_interval % SAVE_INTERVAL == 0){
+    if (current_interval % (SAVE_INTERVAL + 1) == 0){
       userModel.updateUser(dbUsers[item]);
     }
   });
-  if (current_interval % SAVE_INTERVAL == 0) {
-    current_interval = 0;
+  if (current_interval % (SAVE_INTERVAL + 1) == 0) {
+    current_interval = 1;
   }
 }
 
