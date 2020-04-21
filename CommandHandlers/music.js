@@ -314,7 +314,7 @@ async function play(videoName, guildid, voiceChannel, textChannel, playType) {
   if (playable) {
     var dispatcher = conn.play(playable);
     guild['dispatcher'] = dispatcher;
-    dispatcher.on('end', reason => {
+    dispatcher.on('finish', reason => {
       onDispatcherEnd(guildid, textChannel);
     });
   }
