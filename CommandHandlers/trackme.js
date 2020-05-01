@@ -8,7 +8,7 @@ var current_interval = 1;
 var interval = false;
 var clientUsers = false;
 var tracking = false;
-var dbUsers = {};
+var dbUsers = [];
 
 module.exports.onMessage = async (message, args) => {
   if (args[0] == 'track') {
@@ -52,7 +52,7 @@ module.exports.onMessage = async (message, args) => {
         user['statistics'] = {};
       }
       userModel.updateUser(user);
-      dbUsers[id] = user;
+      dbUsers.push(user);
       message.channel.send(confirmationSetences[random(confirmationSetences.length)]);
       if (!tracking) {
         interval = setInterval(track, INTERVAL_TIME);
@@ -117,7 +117,7 @@ module.exports.onMessage = async (message, args) => {
     if (id in dbUsers) {
       var sorted = [];
       for (let [key, value] of Object.entries(dbUsers[id]['statistics'])) {
-        sorted.push({game: key, time: value});
+        sorted.push({game: key, time: value['play_time']});
       }
       sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0)).reverse();
 
@@ -204,22 +204,26 @@ module.exports.onMessage = async (message, args) => {
 
 function track() {
   current_interval+=1;
-  Object.keys(dbUsers).forEach((item, i) => {
-    clientUsers.fetch(item).then(user => {
+  for (const userid of dbUsers) {
+    clientUsers.fetch(userid).then(async user => {
       if (user.presence.activities && user.presence.activities.length != 0) {
         var act = user.presence.activities[0];
-        if (act['name'] in dbUsers[item]['statistics']) {
-          dbUsers[item]['statistics'][act['name']] += 60;
+        var u = await userModel.getUser(userid);
+        if (act['name'] in u['statistics']) {
+          u['statistics'][act['name']]['play_time'] += 60;
         }
         else {
-          dbUsers[item]['statistics'][act['name']] = 60;
+          u['statistics'][act['name']] = {start_date: new Date(), play_time: 60};
+        }
+        if (current_interval % (SAVE_INTERVAL + 1) != 0){
+          userModel.updateUserCache(u);
+        }
+        else {
+          userModel.updateUser(u);
         }
       }
     });
-    if (current_interval % (SAVE_INTERVAL + 1) == 0){
-      userModel.updateUser(dbUsers[item]);
-    }
-  });
+  }
   if (current_interval % (SAVE_INTERVAL + 1) == 0) {
     current_interval = 1;
   }
@@ -229,7 +233,7 @@ module.exports.init = async (data) => {
   var users = await userModel.getTrackedUsers();
   if (users) {
     for (const user of users) {
-      dbUsers[user['userid']] = user;
+      dbUsers.push(user['userid']);
     }
   }
   clientUsers = data['users'];

@@ -60,9 +60,13 @@ module.exports.updateUser = (user) => {
   });
 }
 
+module.exports.updateUserCache = (user) => {
+  users.set(user['userid'], user);
+}
+
 module.exports.getTrackedUsers = () => {
   return new Promise(async resolve  => {
-    var users = await model.find('user', {tracked: true});
+    var users = await model.find('user', {tracked: true}, {projection: {'userid': 1}});
     resolve(users);
   });
 }

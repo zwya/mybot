@@ -5,7 +5,7 @@
 //npm install --save return-deep-diff
 //npm install --save chalk
 
-const ENVIRON = 'PROD';
+const ENVIRON = 'PROD';  // DEV / PROD
 const Discord = require('discord.js');
 var client;
 const settings = require('./settings.json');
@@ -161,7 +161,7 @@ function discordClientInit() {
 }
 
 function init() {
-  db.init();
+  db.init(ENVIRON);
 }
 //message.channel.fetchMessages((limit: intnum)).then(messages =>{ messages.channel.bulkDelete(messages); });
 //client.login(settings.token);

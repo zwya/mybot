@@ -109,13 +109,13 @@ module.exports.findOne = (collection, query, projection={}) => {
   });
 }
 
-module.exports.find = (collection, query, projection={}) => {
+module.exports.find = (collection, query, options={}) => {
   return new Promise(resolve => {
     const client = getDB();
     if (client) {
       if (query) {
         const col = client.collection(collection);
-        col.find(query).project(projection).toArray((err, documents) => {
+        col.find(query, options).toArray((err, documents) => {
           if (err) {
             console.log(err);
             resolve(false);
