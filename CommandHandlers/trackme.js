@@ -116,11 +116,15 @@ module.exports.onMessage = async (message, args) => {
     if (dbUsers.includes(id)) {
       var sorted = [];
       var user = await userModel.getUser(id);
-      console.log(user);
       for (let [key, value] of Object.entries(user['statistics'])) {
         sorted.push({game: key, time: value['play_time']});
       }
+
+      console.log(sorted);
+
       sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0)).reverse();
+
+      console.log(sorted);
 
       var text = '';
       for (var i=start * 10;i<(start+1)*10 && i<sorted.length;i++) {
