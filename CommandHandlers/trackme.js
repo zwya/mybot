@@ -117,15 +117,9 @@ module.exports.onMessage = async (message, args) => {
       var sorted = [];
       var user = await userModel.getUser(id);
       for (let [key, value] of Object.entries(user['statistics'])) {
-        sorted.push({game: key, time: value['play_time']});
+        sorted.push({game: key, time: value['time']});
       }
-
-      console.log(sorted);
-
       sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0)).reverse();
-
-      console.log(sorted);
-
       var text = '';
       for (var i=start * 10;i<(start+1)*10 && i<sorted.length;i++) {
         var inHour = sorted[i]['time'] / 60 / 60;
@@ -215,10 +209,10 @@ function track() {
         var act = user.presence.activities[0];
         var u = await userModel.getUser(userid);
         if (act['name'] in u['statistics']) {
-          u['statistics'][act['name']]['play_time'] += 60;
+          u['statistics'][act['name']]['time'] += 60;
         }
         else {
-          u['statistics'][act['name']] = {start_date: new Date(), play_time: 60};
+          u['statistics'][act['name']] = {start_date: new Date(), time: 60};
         }
         if (current_interval % (SAVE_INTERVAL + 1) != 0){
           userModel.updateUserCache(u);
