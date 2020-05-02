@@ -116,6 +116,7 @@ module.exports.onMessage = async (message, args) => {
     if (dbUsers.includes(id)) {
       var sorted = [];
       var user = await userModel.getUser(id);
+      console.log(user);
       for (let [key, value] of Object.entries(user['statistics'])) {
         sorted.push({game: key, time: value['play_time']});
       }

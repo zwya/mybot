@@ -9,7 +9,7 @@ const ENVIRON = 'PROD';  // DEV / PROD
 const Discord = require('discord.js');
 var client;
 var settings = false;
-if (ENVIRON == 'DEV') {;
+if (ENVIRON == 'DEV') {
   settings = require('./settingsdev.json');
 }
 else {
