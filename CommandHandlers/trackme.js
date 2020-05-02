@@ -113,10 +113,10 @@ module.exports.onMessage = async (message, args) => {
       message.channel.send(errmsg);
       return;
     }
-
-    if (id in dbUsers) {
+    if (dbUsers.includes(id)) {
       var sorted = [];
-      for (let [key, value] of Object.entries(dbUsers[id]['statistics'])) {
+      var user = await userModel.getUser(id);
+      for (let [key, value] of Object.entries(user['statistics'])) {
         sorted.push({game: key, time: value['play_time']});
       }
       sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0)).reverse();
