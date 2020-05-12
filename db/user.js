@@ -11,21 +11,21 @@ module.exports.getUser = (userid) => {
   return new Promise(async resolve => {
     var user = users.get(userid);
     if (user) {
-      resolve(deepcopy(user));
+      resolve(user);
       return;
     }
     else {
       user = await model.findOne('user', {userid: userid}, {});
       if (user) {
         users.set(userid, user);
-        resolve(deepcopy(user));
+        resolve(user);
         return;
       }
     }
     user = {userid: userid, theme: [], lastplayed: false, lastplayedindex: false, lv:'lv1'};
     users.set(userid, user);
     await model.insertOne('user', user);
-    resolve(deepcopy(user));
+    resolve(user);
   });
 }
 
