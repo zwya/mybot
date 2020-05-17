@@ -1,9 +1,5 @@
 const model = require('./model.js');
 const LRU = require('lru-cache');
-const diff = require('deep-diff').diff;
-const addDiff = require('../util/util.js').addDiff;
-const removeEmpty = require('../util/util.js').removeEmpty;
-const deepcopy = require('deepcopy');
 var users = false;
 const CACHE_SIZE = 200;
 
@@ -30,29 +26,12 @@ module.exports.getUser = (userid) => {
 }
 
 module.exports.updateUser = (user) => {
-  var usr = user;
   return new Promise(async resolve => {
-    var user = usr;
     const userid = user['userid'];
-    var oldUser = await module.exports.getUser(userid);
-    var result = diff(oldUser, user);
+    users.set(userid, user);
+    var result = await model.updateOne('user', userid, user);
     if (result) {
-      var doc = {};
-      for (var i=0;i<result.length;i++) {
-        addDiff(result[i], user, doc);
-      }
-      doc = removeEmpty(doc);
-      var result = await model.updateOne('user', userid, doc);
-      if (result) {
-        var user = users.get(userid);
-        const keys = Object.keys(doc);
-        for (var i=0;i<keys.length;i++) {
-          user[keys[i]] = doc[keys[i]];
-        }
-        users.set(userid, user);
-        resolve(true);
-      }
-      resolve(false);
+      resolve(true);
     }
     else {
       resolve(false);

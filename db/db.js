@@ -1,6 +1,7 @@
 const mongodb = require('mongodb').MongoClient;
 const guildModel = require('./guild.js');
 const userModel = require('./user.js');
+const gameModel = require('./game.js');
 var connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
 var db = false;
 var dbname = 'discordbot';
@@ -26,4 +27,5 @@ module.exports.init = (environ) => {
   });
   userModel.init();
   guildModel.init();
+  gameModel.init();
 }

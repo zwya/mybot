@@ -1,13 +1,13 @@
 const db = require('./db.js');
 const ObjectID = require('mongodb').ObjectID;
 
-module.exports.updateOne = (collection, id, doc) => {
+module.exports.updateOne = (collection, id, doc, options={}) => {
   return new Promise(resolve => {
     const client = getDB();
     if (client) {
       if (id && doc) {
         const col = client.collection(collection);
-        col.updateOne(resolveID(id, collection), {$set: doc}, (err, result) => {
+        col.updateOne(resolveID(id, collection), {$set: doc}, options, (err, result) => {
           if (err) {
             console.log(err);
             resolve(false);
@@ -193,6 +193,9 @@ function resolveID(id, collection) {
   }
   else if (collection == 'serverdata') {
     return {guildid: id};
+  }
+  else if (collection == 'game') {
+    return {userid: id['userid'], title: id['title']};
   }
   return {'_id': ObjectID(id)};
 }

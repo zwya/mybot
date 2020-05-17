@@ -1,4 +1,5 @@
 const userModel = require('../db/user.js');
+const gameModel = require('../db/game.js');
 const perms = require('../util/permissions.js');
 const confirmationSetences = require('../data.json').confirmation;
 const random = require('../util/util.js').getRandomInt;
@@ -48,9 +49,6 @@ module.exports.onMessage = async (message, args) => {
     if (id && !(id in dbUsers)) {
       var user = await userModel.getUser(id);
       user['tracked'] = true;
-      if (!('statistics' in user)) {
-        user['statistics'] = {};
-      }
       userModel.updateUser(user);
       dbUsers.push(user);
       message.channel.send(confirmationSetences[random(confirmationSetences.length)]);
@@ -115,8 +113,8 @@ module.exports.onMessage = async (message, args) => {
     }
     if (dbUsers.includes(id)) {
       var sorted = [];
-      var user = await userModel.getUser(id);
-      for (let [key, value] of Object.entries(user['statistics'])) {
+      var games = await gameModel.getUserGames(id);
+      for (let [key, value] of Object.entries(games)) {
         sorted.push({game: key, time: value['time']});
       }
       sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0)).reverse();
@@ -150,7 +148,8 @@ module.exports.onMessage = async (message, args) => {
       if (args[1] == 'me') {
         if (perms.HAS_PERMS('untrackself', message.member.id)) {
           if (message.member.id in dbUsers) {
-            var user = dbUsers[message.member.id];
+            var user = await userModel.getUser(message.member.id);
+            user['tracked'] = false;
             userModel.updateUser(user);
             delete dbUsers[message.member.id];
             message.channel.send('I am no longer watching you');
@@ -171,7 +170,8 @@ module.exports.onMessage = async (message, args) => {
         if (perms.HAS_PERMS('untrackothers', message.member.id)) {
           var member = message.mentions.members.first();
           if (member.id in dbUsers) {
-            var user = dbUsers[member.id];
+            var user = await userModel.getUser(message.member.id);
+            user['tracked'] = false;
             userModel.updateUser(user);
             delete dbUsers[member.id];
             message.channel.send('I am no longer watching this user');
@@ -203,29 +203,26 @@ module.exports.onMessage = async (message, args) => {
 
 function track() {
   current_interval+=1;
+  allPromises = [];
   for (const userid of dbUsers) {
-    clientUsers.fetch(userid).then(async user => {
+    allPromises.push(clientUsers.fetch(userid).then(async user => {
       if (user.presence.activities && user.presence.activities.length != 0) {
         var act = user.presence.activities[0];
-        var u = await userModel.getUser(userid);
-        if (act['name'] in u['statistics']) {
-          u['statistics'][act['name']]['time'] += 60;
-        }
-        else {
-          u['statistics'][act['name']] = {start_date: new Date(), time: 60};
-        }
-        if (current_interval % (SAVE_INTERVAL + 1) != 0){
-          userModel.updateUserCache(u);
-        }
-        else {
-          userModel.updateUser(u);
-        }
+        var game = await gameModel.getGame(act['name'], userid);
+        game['time'] += 60;
+        game['updated'] = true;
+        gameModel.updateCache(game, userid);
       }
-    });
+      if (current_interval % (SAVE_INTERVAL + 1) == 0){
+        gameModel.updateUserGames(userid);
+      }
+    }));
   }
-  if (current_interval % (SAVE_INTERVAL + 1) == 0) {
-    current_interval = 1;
-  }
+  Promise.all(allPromises).then(values => {
+    if (current_interval % (SAVE_INTERVAL + 1) == 0) {
+      current_interval = 1;
+    }
+  });
 }
 
 module.exports.init = async (data) => {
