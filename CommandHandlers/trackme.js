@@ -12,192 +12,198 @@ var tracking = false;
 var dbUsers = [];
 
 module.exports.onMessage = async (message, args) => {
-  if (args[0] == 'track') {
-    var id = false;
-    var errmsg = false;
-    if (args.length == 2 && args[1].startsWith('<@!')) {
-      if (perms.HAS_PERMS('trackothers', message.member.id)) {
-        var member = message.mentions.members.first();
-        if (!member.user.bot) {
-          id = member.id;
+  try {
+    if (args[0] == 'track') {
+      var id = false;
+      var errmsg = false;
+      if (args.length == 2 && args[1].startsWith('<@!')) {
+        if (perms.HAS_PERMS('trackothers', message.member.id)) {
+          var member = message.mentions.members.first();
+          if (!member.user.bot) {
+            id = member.id;
+          }
+          else {
+            errmsg = 'I cannot track a bot user';
+          }
         }
         else {
-          errmsg = 'I cannot track a bot user';
+          errmsg = 'You do not have permissions to track others';
+        }
+      }
+      else if (args.length == 2 && args[1] == 'me') {
+        if (perms.HAS_PERMS('trackself', message.member.id)) {
+          id = message.member.id;
+        }
+        else {
+          errmsg = 'You do not have permissions to track yourself';
         }
       }
       else {
-        errmsg = 'You do not have permissions to track others';
+        errmsg = 'Command format incorrect';
       }
-    }
-    else if (args.length == 2 && args[1] == 'me') {
-      if (perms.HAS_PERMS('trackself', message.member.id)) {
-        id = message.member.id;
-      }
-      else {
-        errmsg = 'You do not have permissions to track yourself';
-      }
-    }
-    else {
-      errmsg = 'Command format incorrect';
-    }
 
-    if (errmsg) {
-      message.channel.send(errmsg);
-      return;
-    }
+      if (errmsg) {
+        message.channel.send(errmsg);
+        return;
+      }
 
-    if (id && !(id in dbUsers)) {
-      var user = await userModel.getUser(id);
-      user['tracked'] = true;
-      userModel.updateUser(user);
-      dbUsers.push(user);
-      message.channel.send(confirmationSetences[random(confirmationSetences.length)]);
-      if (!tracking) {
-        interval = setInterval(track, INTERVAL_TIME);
-        tracking = true;
-        current_interval = 0;
+      console.log(dbUsers, id);
+      if (id && !dbUsers.includes(id)) {
+        var user = await userModel.getUser(id);
+        user['tracked'] = true;
+        userModel.updateUser(user);
+        dbUsers.push(user.userid);
+        message.channel.send(confirmationSetences[random(confirmationSetences.length)]);
+        if (!tracking) {
+          interval = setInterval(track, INTERVAL_TIME);
+          tracking = true;
+          current_interval = 0;
+        }
       }
     }
-  }
-  else if (args[0] == 'stats') {
-    var id = false;
-    var start = false;
-    var errmsg = false;
-    if (args.length == 1) {
-      if (perms.HAS_PERMS('statself', message.member.id)) {
-        id = message.member.id;
-        start = 0;
+    else if (args[0] == 'stats') {
+      var id = false;
+      var start = false;
+      var errmsg = false;
+      if (args.length == 1) {
+        if (perms.HAS_PERMS('statself', message.member.id)) {
+          id = message.member.id;
+          start = 0;
+        }
+        else {
+          errmsg = 'You do not have permissions to view your stats';
+        }
       }
-      else {
-        errmsg = 'You do not have permissions to view your stats';
+      else if (args.length == 2) {
+        if (args[1].startsWith('<@!')) {
+          if (perms.HAS_PERMS('statothers', message.member.id)) {
+            var member = message.mentions.members.first();
+            start = 0;
+            id = member.id;
+          }
+          else {
+            errmsg = 'You do not have permissions to view other members stats';
+          }
+        }
+        else if (args[1].length > 0 && !isNaN(args[1])) {
+          if (perms.HAS_PERMS('statself', message.member.id)) {
+            id = message.member.id;
+            start = parseInt(args[1]) - 1;
+          }
+          else {
+            errmsg = 'You do not have permissions to view your stats';
+          }
+        }
       }
-    }
-    else if (args.length == 2) {
-      if (args[1].startsWith('<@!')) {
+      else if (args.length == 3 && args[1].startsWith('<@!') && args[2].length > 0 && !isNaN(args[2])) {
         if (perms.HAS_PERMS('statothers', message.member.id)) {
           var member = message.mentions.members.first();
-          start = 0;
+          start = parseInt(args[2]) - 1;
           id = member.id;
         }
         else {
           errmsg = 'You do not have permissions to view other members stats';
         }
       }
-      else if (args[1].length > 0 && !isNaN(args[1])) {
-        if (perms.HAS_PERMS('statself', message.member.id)) {
-          id = message.member.id;
-          start = parseInt(args[1]) - 1;
-        }
-        else {
-          errmsg = 'You do not have permissions to view your stats';
-        }
-      }
-    }
-    else if (args.length == 3 && args[1].startsWith('<@!') && args[2].length > 0 && !isNaN(args[2])) {
-      if (perms.HAS_PERMS('statothers', message.member.id)) {
-        var member = message.mentions.members.first();
-        start = parseInt(args[2]) - 1;
-        id = member.id;
-      }
       else {
-        errmsg = 'You do not have permissions to view other members stats';
+        errmsg = 'Command format incorrect';
       }
-    }
-    else {
-      errmsg = 'Command format incorrect';
-    }
 
-    if (errmsg) {
-      message.channel.send(errmsg);
-      return;
-    }
-    if (dbUsers.includes(id)) {
-      var sorted = [];
-      var games = await gameModel.getUserGames(id);
-      for (let [key, value] of Object.entries(games)) {
-        sorted.push({game: key, time: value['time']});
+      if (errmsg) {
+        message.channel.send(errmsg);
+        return;
       }
-      sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0)).reverse();
-      var text = '';
-      for (var i=start * 10;i<(start+1)*10 && i<sorted.length;i++) {
-        var inHour = sorted[i]['time'] / 60 / 60;
-        var inMinute = sorted[i]['time'] / 60;
-        var time = sorted[i]['time'].toFixed(2) + ' seconds';
-        if (inHour > 1) {
-          time = inHour.toFixed(2) + ' hours';
+      if (dbUsers.includes(id)) {
+        var sorted = [];
+        var games = await gameModel.getUserGames(id);
+        for (let [key, value] of Object.entries(games)) {
+          sorted.push({game: key, time: value['time']});
         }
-        else if (inMinute > 1) {
-          time = inMinute.toFixed(2) + ' minutes';
+        sorted.sort((a,b) => (a.time > b.time) ? 1 : ((b.time > a.time) ? -1 : 0)).reverse();
+        var text = '';
+        for (var i=start * 10;i<(start+1)*10 && i<sorted.length;i++) {
+          var inHour = sorted[i]['time'] / 60 / 60;
+          var inMinute = sorted[i]['time'] / 60;
+          var time = sorted[i]['time'].toFixed(2) + ' seconds';
+          if (inHour > 1) {
+            time = inHour.toFixed(2) + ' hours';
+          }
+          else if (inMinute > 1) {
+            time = inMinute.toFixed(2) + ' minutes';
+          }
+          text = text + sorted[i]['game'] + ' ==> ' + time + '\n';
         }
-        text = text + sorted[i]['game'] + ' ==> ' + time + '\n';
-      }
-      if (text.length > 0) {
-        message.channel.send(text);
+        if (text.length > 0) {
+          message.channel.send(text);
+        }
+        else {
+          message.channel.send('No stats found on this page');
+        }
       }
       else {
-        message.channel.send('No stats found on this page');
+        message.channel.send('This user has tracking disabled');
       }
     }
-    else {
-      message.channel.send('This user has tracking disabled');
-    }
-  }
-  else if (args[0] == 'untrack') {
-    var errmsg = false;
-    if (args.length == 2) {
-      if (args[1] == 'me') {
-        if (perms.HAS_PERMS('untrackself', message.member.id)) {
-          if (message.member.id in dbUsers) {
-            var user = await userModel.getUser(message.member.id);
-            user['tracked'] = false;
-            userModel.updateUser(user);
-            delete dbUsers[message.member.id];
-            message.channel.send('I am no longer watching you');
-            if (tracking && Object.keys(dbUsers).length !== 0) {
-              tracking = false;
-              clearInterval(interval);
+    else if (args[0] == 'untrack') {
+      var errmsg = false;
+      if (args.length == 2) {
+        if (args[1] == 'me') {
+          if (perms.HAS_PERMS('untrackself', message.member.id)) {
+            if (message.member.id in dbUsers) {
+              var user = await userModel.getUser(message.member.id);
+              user['tracked'] = false;
+              userModel.updateUser(user);
+              dbUsers = dbUsers.filter(uid => uid != message.member.id);
+              message.channel.send('I am no longer watching you');
+              if (tracking && Object.keys(dbUsers).length !== 0) {
+                tracking = false;
+                clearInterval(interval);
+              }
+            }
+            else {
+              errmsg = 'You have not enabled tracking';
             }
           }
           else {
-            errmsg = 'You have not enabled tracking';
+            errmsg = 'You do not have permissions to make me stop';
           }
         }
-        else {
-          errmsg = 'You do not have permissions to make me stop';
-        }
-      }
-      else if (args[1].startsWith('<@!')) {
-        if (perms.HAS_PERMS('untrackothers', message.member.id)) {
-          var member = message.mentions.members.first();
-          if (member.id in dbUsers) {
-            var user = await userModel.getUser(message.member.id);
-            user['tracked'] = false;
-            userModel.updateUser(user);
-            delete dbUsers[member.id];
-            message.channel.send('I am no longer watching this user');
-            if (tracking && Object.keys(dbUsers).length !== 0) {
-              tracking = false;
-              clearInterval(interval);
+        else if (args[1].startsWith('<@!')) {
+          if (perms.HAS_PERMS('untrackothers', message.member.id)) {
+            var member = message.mentions.members.first();
+            if (dbUsers.includes(member.id)) {
+              var user = await userModel.getUser(member.id);
+              user['tracked'] = false;
+              userModel.updateUser(user);
+              dbUsers = dbUsers.filter(uid => uid != member.id);
+              message.channel.send('I am no longer watching this user');
+              if (tracking && Object.keys(dbUsers).length !== 0) {
+                tracking = false;
+                clearInterval(interval);
+              }
+            }
+            else {
+              errmsg = 'This user has not enabled tracking';
             }
           }
           else {
-            errmsg = 'This user has not enabled tracking';
+            errmsg = 'You do not have permissions to make me stop tracking this member';
           }
         }
         else {
-          errmsg = 'You do not have permissions to make me stop tracking this member';
+          errmsg = 'Command format incorrect';
         }
       }
       else {
         errmsg = 'Command format incorrect';
       }
+      if (errmsg) {
+        message.channel.send(errmsg);
+      }
     }
-    else {
-      errmsg = 'Command format incorrect';
-    }
-    if (errmsg) {
-      message.channel.send(errmsg);
-    }
+  }
+  catch (e) {
+    console.log(e);
   }
 }
 
