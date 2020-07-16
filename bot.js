@@ -5,12 +5,18 @@
 //npm install --save return-deep-diff
 //npm install --save chalk
 
-const ENVIRON = 'PROD';  // DEV / PROD
+const ENVIRON = 'DEV';  // DEV / PROD
 const Discord = require('discord.js');
 var client;
 var settings = false;
+const whichBot = 'TestBot';
 if (ENVIRON == 'DEV') {
-  settings = require('./settingsdev.json');
+  if (whichBot == 'Waifu') {
+    settings = require('./settingsdevwaifu.json');
+  }
+  else {
+    settings = require('./settingsdev.json');
+  }
 }
 else {
   settings = require('./settings.json');
@@ -167,7 +173,7 @@ function discordClientInit() {
 }
 
 function init() {
-  db.init(ENVIRON);
+  db.init(ENVIRON, whichBot);
 }
 //message.channel.fetchMessages((limit: intnum)).then(messages =>{ messages.channel.bulkDelete(messages); });
 //client.login(settings.token);

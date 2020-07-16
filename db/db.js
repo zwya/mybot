@@ -1,10 +1,5 @@
-const mongodb = require('mongodb').MongoClient;
-const guildModel = require('./guild.js');
-const userModel = require('./user.js');
-const gameModel = require('./game.js');
+const mongoose = require('mongoose');
 var connectionURL = 'mongodb://zwya:o6o6ed@ds263109.mlab.com:63109/discordbot';
-var db = false;
-var dbname = 'discordbot';
 
 module.exports.db = () => {
   if (db) {
@@ -13,19 +8,12 @@ module.exports.db = () => {
   return false;
 }
 
-module.exports.init = (environ) => {
-  if (environ == 'DEV') {
+module.exports.init = (environ, whichBot) => {
+  if (environ == 'DEV' && whichBot != 'Waifu') {
     connectionURL = 'mongodb://zwya:o6o6ed@ds219839.mlab.com:19839/discbot';
-    dbname = 'discbot';
+    console.log('We\'re in dev mode YAAY');
   }
-  mongodb.connect(connectionURL, function(err, client) {
-    if (err) {
-      console.log(err);
-      return;
-    }
-    db = client.db(dbname);
+  mongoose.connect(connectionURL, { useNewUrlParser: true, useCreateIndex: true }).then(() => {
+    console.log('Connected to database');
   });
-  userModel.init();
-  guildModel.init();
-  gameModel.init();
 }

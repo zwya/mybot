@@ -1,5 +1,4 @@
-const model = require('../db/model.js');
-const guildModel = require('../db/guild.js');
+const Guild = require('../db/guild.js');
 const fs = require('fs');
 const allCommands = {};
 const interceptQueue = {};
@@ -39,8 +38,10 @@ module.exports.onMessage = async (message) => {
     delete interceptQueue[message.author.id];
     return;
   }
-  const prefix = await guildPrefix(message.guild.id);
-  var args = message.content.split(' ');
+
+  const guild = await Guild.findOne({guildId: message.guild.id});
+  let prefix = (guild)? guild.prefix : '!';
+  let args = message.content.split(' ');
   if (args[0]) {
     const userPrefix = args[0][0];
     if (userPrefix == prefix) {
@@ -57,11 +58,4 @@ module.exports.onUserVoice = (member) => {
   for (const listener of userVoiceIntercept) {
     listener(member);
   }
-}
-
-function guildPrefix(guildid, callback) {
-  return new Promise(async resolve => {
-    var guild = await guildModel.getGuild(guildid);
-    resolve(guild['prefix']);
-  });
 }

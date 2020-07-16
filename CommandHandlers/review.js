@@ -11,6 +11,8 @@ const MODE = {
 const FETCH_COUNT = 10;
 
 module.exports.onMessage = async (message, args) => {
+  message.channel.send('This functionality is disabled');
+  return;
   var query = {};
   const guildid = message.guild.id;
   if (args.length >= 2) {
