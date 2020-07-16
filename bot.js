@@ -5,7 +5,7 @@
 //npm install --save return-deep-diff
 //npm install --save chalk
 
-const ENVIRON = 'DEV';  // DEV / PROD
+const ENVIRON = 'PROD';  // DEV / PROD
 const Discord = require('discord.js');
 var client;
 var settings = false;
