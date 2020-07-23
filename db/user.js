@@ -9,7 +9,8 @@ const userSchema = new Schema({
   themeLastPlayIndex: { type: Number },
   tracked: { type: Boolean, default: false },
   discordAvatarUrl: { type: String },
-  publicId: { type: Number }
+  publicId: { type: Number },
+  guilds: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild'}] }
 });
 
 userSchema.static('findOneOrCreateDefault', async function(query) {
