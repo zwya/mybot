@@ -29,7 +29,8 @@ const guildSchema = new Schema({
   },
   publicId: {
     type: Number
-  }
+  },
+  hints: [ String ]
 });
 
 guildSchema.static('findOneOrCreateDefault', async function(discordGuild) {
@@ -50,6 +51,7 @@ guildSchema.static('findOneOrCreateDefault', async function(discordGuild) {
       publicId
     });
   }
+  const hints = discordGuild.name.trim().split(' ').map(item => item.toLowerCase());
   guild = new this({
     prefix: '!',
     guildId: discordGuild.id,
@@ -60,6 +62,7 @@ guildSchema.static('findOneOrCreateDefault', async function(discordGuild) {
       dynamic: true,
       format: 'jpg'
     }) : null,
+    hints: (hints.length > 1)? hints : null,
     publicId
   });
   await guild.save();
