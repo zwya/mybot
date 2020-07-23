@@ -3,6 +3,7 @@ const fs = require('fs');
 const allCommands = {};
 const interceptQueue = {};
 const userVoiceIntercept = [];
+let guildCache = {};
 
 module.exports.init = (data) => {
   const commandFiles = fs.readdirSync('./CommandHandlers').filter(file => file.endsWith('.js') && !file.startsWith('handler'));
@@ -39,8 +40,16 @@ module.exports.onMessage = async (message) => {
     return;
   }
 
-  const guild = await Guild.findOne({guildId: message.guild.id});
-  let prefix = (guild)? guild.prefix : '!';
+  let prefix = false;
+  if (guildCache[message.guild.id]) {
+    prefix = guildCache[message.guild.id];
+  }
+  else {
+    const guild = await Guild.findOneOrCreateDefault(message.guild);
+    prefix = guild.prefix;
+    guildCache[guild.guildId] = guild.prefix;
+  }
+  
   let args = message.content.split(' ');
   if (args[0]) {
     const userPrefix = args[0][0];
