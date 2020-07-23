@@ -10,7 +10,8 @@ const userSchema = new Schema({
   tracked: { type: Boolean, default: false },
   discordAvatarUrl: { type: String },
   publicId: { type: Number },
-  guilds: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild'}] }
+  guilds: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Guild'}] },
+  tag: { type: String }
 });
 
 userSchema.static('findOneOrCreateDefault', async function(query) {
