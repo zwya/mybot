@@ -24,6 +24,9 @@ const guildSchema = new Schema({
   name: {
     type: String
   },
+  nameLower: {
+    type: String
+  },
   icon: {
     type: String
   },
@@ -57,6 +60,7 @@ guildSchema.static('findOneOrCreateDefault', async function(discordGuild) {
     guildId: discordGuild.id,
     shouldMeme: false,
     name: discordGuild.name,
+    nameLower: discordGuild.name.toLowerCase(),
     icon: (discordGuild.icon)? discordGuild.iconURL({
       size: 256,
       dynamic: true,
