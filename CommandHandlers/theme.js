@@ -10,7 +10,7 @@ module.exports.onMessage = async (message, args) => {
       if (args[1].startsWith('https://www.myinstants.com/media/sounds/')) {
         urlExists(args[1], async (err, exists) => {
           if (exists) {
-            const user = await User.findOne({discordId: message.author.id});
+            const user = await User.findOneOrCreateDefault({discordId: message.author.id});
             const bypass = true; //perms.canByPass(guild['lv'], perms.PERMS.THEMES);
             const maxThemes = 3; //perms.maxAllowed(guild['lv'], perms.PERMS.THEMES);
             if (user.theme.length < maxThemes) {

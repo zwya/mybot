@@ -51,7 +51,7 @@ module.exports.onMessage = async (message, args) => {
       }
 
       if (id && !dbUsers.includes(id)) {
-        const user = await User.findOne({discordId: id});
+        const user = await User.findOneOrCreateDefault({discordId: id});
         user.tracked = true;
         user.save();
         dbUsers.push(id);
@@ -206,23 +206,17 @@ module.exports.onMessage = async (message, args) => {
 
 async function track() {
   current_interval+=1;
-  allPromises = [];
   for (const userid of dbUsers) {
-    allPromises.push(clientUsers.fetch(userid).then(async user => {
-      if (user.presence.activities && user.presence.activities.length != 0) {
-        const act = user.presence.activities[0];
-        recordGame(userid, act['name']);
-      }
-      if (current_interval % (SAVE_INTERVAL + 1) == 0){
-        updatePlayedGames();
-      }
-    }));
-  }
-  Promise.all(allPromises).then(values => {
-    if (current_interval % (SAVE_INTERVAL + 1) == 0) {
-      current_interval = 1;
+    const user = await clientUsers.fetch(userid);
+    if (user.presence.activities && user.presence.activities.length != 0) {
+      const act = user.presence.activities[0];
+      recordGame(userid, act['name']);
     }
-  });
+  }
+  if (current_interval % (SAVE_INTERVAL + 1) == 0){
+    updatePlayedGames();
+    current_interval = 1;
+  }
 }
 
 module.exports.init = async (data) => {
@@ -268,11 +262,7 @@ async function updatePlayedGames() {
         gameId = gameIdCache[game];
       }
       else {
-        let dbGame = await Game.findOne({title: game});
-        if (!dbGame) {
-          dbGame = new Game({title: game});
-          await dbGame.save();
-        }
+        let dbGame = await Game.findOneOrCreateDefault({title: game});
         gameIdCache[game] = dbGame.id;
       }
       let gamePlayed = await GamePlayed.findOne({user: userIdCache[user], game: gameIdCache[game]});

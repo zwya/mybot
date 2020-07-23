@@ -1,4 +1,5 @@
 const fs = require('fs');
+const secureRandom = require('secure-random');
 
 module.exports.removeEmpty = (obj) => {
   Object.keys(obj).forEach(key => {
@@ -29,4 +30,8 @@ module.exports.addDiff = (diff, object, doc) => {
 
 module.exports.getRandomInt = (max) => {
   return Math.floor(Math.random() * Math.floor(max));
+}
+
+module.exports.generateSecureId = () => {
+  return secureRandom.randomBuffer(8).readUInt32BE();
 }
